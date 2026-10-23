@@ -24,8 +24,10 @@ return new class extends Migration
 
         DB::statement("ALTER TABLE kehadiran ADD CONSTRAINT kehadiran_status_check CHECK (status IN ('hadir','izin','sakit','alpa'))");
 
-        // FK komposit: mahasiswa harus terdaftar di kelas yang sama
-        DB::statement('ALTER TABLE kehadiran ADD CONSTRAINT kehadiran_kelas_mahasiswa_fk FOREIGN KEY (kelas_id, mahasiswa_id) REFERENCES kelas_mahasiswa (kelas_id, mahasiswa_id)');
+        // FK komposit: mahasiswa harus terdaftar di kelas yang sama.
+        // ON DELETE CASCADE: saat kelas dihapus, pendaftaran di pivot ikut terhapus
+        // dan kehadiran tidak boleh tersisa mereferensinya.
+        DB::statement('ALTER TABLE kehadiran ADD CONSTRAINT kehadiran_kelas_mahasiswa_fk FOREIGN KEY (kelas_id, mahasiswa_id) REFERENCES kelas_mahasiswa (kelas_id, mahasiswa_id) ON DELETE CASCADE');
 
         // FK komposit: pertemuan harus milik kelas yang sama, ikut terhapus jika pertemuan dihapus
         DB::statement('ALTER TABLE kehadiran ADD CONSTRAINT kehadiran_pertemuan_fk FOREIGN KEY (pertemuan_id, kelas_id) REFERENCES pertemuan (id, kelas_id) ON DELETE CASCADE');
