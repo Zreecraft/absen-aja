@@ -75,7 +75,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <Users class="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{{ k.mahasiswa_count || 0 }} mahasiswa terdaftar</span>
+                <span>{{ k.jumlah_mahasiswa ?? k.mahasiswa_count ?? 0 }} mahasiswa terdaftar</span>
               </div>
             </div>
           </div>

@@ -78,8 +78,12 @@
               <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               <span>Ada perubahan belum disimpan</span>
             </span>
-            <span v-else class="text-slate-400">
-              Semua data tersimpan rapi
+            <span
+              v-else
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium"
+            >
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Presensi telah disimpan</span>
             </span>
           </div>
         </div>
@@ -181,11 +185,16 @@
               type="button"
               :disabled="saving"
               @click="simpanKehadiran"
-              class="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50 transition-colors"
+              :class="[
+                'inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg shadow-xs focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 transition-all duration-200',
+                adaPerubahan
+                  ? 'bg-brand-600 hover:bg-brand-700 text-white focus-visible:ring-brand-500'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white focus-visible:ring-emerald-500'
+              ]"
             >
               <Loader2 v-if="saving" class="w-4 h-4 animate-spin" />
               <Check v-else class="w-4 h-4" />
-              <span>{{ saving ? 'Menyimpan...' : 'Simpan Presensi' }}</span>
+              <span>{{ saving ? 'Menyimpan...' : (adaPerubahan ? 'Simpan Presensi' : 'Presensi Telah Disimpan') }}</span>
             </button>
           </div>
         </div>

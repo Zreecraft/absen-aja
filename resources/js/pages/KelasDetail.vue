@@ -62,7 +62,7 @@
             <Users class="w-4 h-4 text-slate-400" />
           </div>
           <div class="text-2xl font-bold text-slate-900 tabular-nums">
-            {{ kelas.mahasiswa_count || mahasiswaKelas.length || 0 }}
+            {{ kelas.jumlah_mahasiswa ?? kelas.mahasiswa_count ?? mahasiswaKelas.length ?? 0 }}
           </div>
           <p class="text-xs text-slate-400 mt-1">Mahasiswa terdaftar di kelas</p>
         </div>
@@ -189,11 +189,11 @@
                   </td>
                   <td class="py-3.5 px-4">
                     <span
-                      v-if="p.kehadiran_count > 0"
+                      v-if="Number(p.jumlah_tercatat ?? p.kehadiran_count ?? 0) > 0"
                       class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
                     >
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      Sudah dicatat ({{ p.kehadiran_count }} mhs)
+                      Sudah dicatat ({{ p.jumlah_tercatat ?? p.kehadiran_count }} mhs)
                     </span>
                     <span
                       v-else
@@ -601,7 +601,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-const kelasId = route.params.id;
+const kelasId = computed(() => route.params.id);
 
 // Data kelas
 const kelas = ref(null);
@@ -640,7 +640,7 @@ const loadingRekap = ref(false);
 
 // Hitungan statistik
 const jumlahPertemuanTercatat = computed(() => {
-  return daftarPertemuan.value.filter((p) => (p.kehadiran_count || 0) > 0).length;
+  return daftarPertemuan.value.filter((p) => Number(p.jumlah_tercatat ?? p.kehadiran_count ?? 0) > 0).length;
 });
 
 const rataRataKehadiran = computed(() => {
@@ -698,7 +698,7 @@ async function muatKelas() {
   loadingKelas.value = true;
   errorKelas.value = '';
   try {
-    const res = await api.get(`/api/kelas/${kelasId}`);
+    const res = await api.get(`/api/kelas/${kelasId.value}`);
     kelas.value = res.data || res;
   } catch (err) {
     errorKelas.value = err.message || 'Kelas tidak ditemukan.';
@@ -710,7 +710,7 @@ async function muatKelas() {
 async function muatPertemuan() {
   loadingPertemuan.value = true;
   try {
-    const res = await api.get(`/api/kelas/${kelasId}/pertemuan`);
+    const res = await api.get(`/api/kelas/${kelasId.value}/pertemuan`);
     daftarPertemuan.value = res.data || [];
   } catch (err) {
     toast.error('Gagal memuat pertemuan: ' + err.message);
@@ -723,7 +723,7 @@ async function muatMahasiswaKelas() {
   loadingMahasiswa.value = true;
   try {
     const [resKelas, resMaster] = await Promise.all([
-      api.get(`/api/kelas/${kelasId}/mahasiswa`),
+      api.get(`/api/kelas/${kelasId.value}/mahasiswa`),
       api.get('/api/mahasiswa?per_page=1000'),
     ]);
     mahasiswaKelas.value = resKelas.data || [];
@@ -738,7 +738,7 @@ async function muatMahasiswaKelas() {
 async function muatRekap() {
   loadingRekap.value = true;
   try {
-    const res = await api.get(`/api/kelas/${kelasId}/rekap`);
+    const res = await api.get(`/api/kelas/${kelasId.value}/rekap`);
     dataRekap.value = res.data || res;
   } catch (err) {
     toast.error('Gagal memuat rekap: ' + err.message);
@@ -778,7 +778,7 @@ async function simpanPertemuan() {
       await api.put(`/api/pertemuan/${editPertemuanId.value}`, payload);
       toast.success('Pertemuan berhasil diperbarui.');
     } else {
-      await api.post(`/api/kelas/${kelasId}/pertemuan`, payload);
+      await api.post(`/api/kelas/${kelasId.value}/pertemuan`, payload);
       toast.success('Pertemuan berhasil dibuat.');
     }
     showModalPertemuan.value = false;
@@ -824,7 +824,7 @@ async function daftarkanMahasiswa() {
 
   mendaftar.value = true;
   try {
-    await api.post(`/api/kelas/${kelasId}/mahasiswa`, {
+    await api.post(`/api/kelas/${kelasId.value}/mahasiswa`, {
       mahasiswa_id: mahasiswaDipilih.value,
     });
     toast.success('Mahasiswa berhasil didaftarkan ke kelas.');
@@ -848,7 +848,7 @@ async function eksekusiKeluarkanMahasiswa() {
 
   removingMahasiswa.value = true;
   try {
-    await api.delete(`/api/kelas/${kelasId}/mahasiswa/${mahasiswaAkanDikeluarkan.value.id}`);
+    await api.delete(`/api/kelas/${kelasId.value}/mahasiswa/${mahasiswaAkanDikeluarkan.value.id}`);
     toast.success('Mahasiswa berhasil dikeluarkan dari kelas.');
     showConfirmKeluarkan.value = false;
     mahasiswaAkanDikeluarkan.value = null;
@@ -867,6 +867,18 @@ watch(
   (newTab) => {
     if (newTab && ['pertemuan', 'mahasiswa', 'rekap'].includes(newTab)) {
       tabAktif.value = newTab;
+    }
+  }
+);
+
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId) {
+      await muatKelas();
+      muatPertemuan();
+      muatMahasiswaKelas();
+      muatRekap();
     }
   }
 );
