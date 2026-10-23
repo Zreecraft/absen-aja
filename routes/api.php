@@ -5,6 +5,7 @@ use App\Http\Controllers\KelasMahasiswaController;
 use App\Http\Controllers\KehadiranController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\PertemuanController;
+use App\Http\Controllers\RekapController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,3 +33,6 @@ Route::apiResource('pertemuan', PertemuanController::class)
 // Kehadiran satu pertemuan (GET = lembar absensi, PUT = simpan sekaligus)
 Route::get('/pertemuan/{pertemuan}/kehadiran', [KehadiranController::class, 'show']);
 Route::put('/pertemuan/{pertemuan}/kehadiran', [KehadiranController::class, 'update']);
+
+// Rekap kehadiran per kelas
+Route::get('/kelas/{kelas}/rekap', [RekapController::class, 'show']);
