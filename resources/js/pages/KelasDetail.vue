@@ -249,16 +249,27 @@
             Daftarkan Mahasiswa ke Kelas Ini
           </h3>
           <div class="flex flex-col sm:flex-row gap-3">
-            <div class="flex-1">
+            <div class="flex-1 flex flex-col sm:flex-row gap-2">
+              <div class="relative sm:w-56 shrink-0">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Search class="w-4 h-4" />
+                </div>
+                <input
+                  v-model="kataKunciKandidat"
+                  type="text"
+                  placeholder="Filter pilihan mahasiswa..."
+                  class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+                />
+              </div>
               <select
                 v-model="mahasiswaDipilih"
                 class="block w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
               >
                 <option :value="null" disabled>
-                  -- Pilih mahasiswa yang belum terdaftar ({{ kandidatMahasiswa.length }} tersedia) --
+                  -- Pilih mahasiswa yang belum terdaftar ({{ kandidatMahasiswaTampil.length }} tersedia) --
                 </option>
                 <option
-                  v-for="mhs in kandidatMahasiswa"
+                  v-for="mhs in kandidatMahasiswaTampil"
                   :key="mhs.id"
                   :value="mhs.id"
                 >
@@ -270,7 +281,7 @@
               type="button"
               :disabled="!mahasiswaDipilih || mendaftar"
               @click="daftarkanMahasiswa"
-              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50 shrink-0"
             >
               <Loader2 v-if="mendaftar" class="w-4 h-4 animate-spin" />
               <UserPlus v-else class="w-4 h-4" />
@@ -289,45 +300,66 @@
           :icon="Users"
         />
 
-        <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-700">
-              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                <tr>
-                  <th scope="col" class="py-3.5 px-4 w-44">NIM</th>
-                  <th scope="col" class="py-3.5 px-4">Nama Mahasiswa</th>
-                  <th scope="col" class="py-3.5 px-4 w-32 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr
-                  v-for="mhs in mahasiswaKelas"
-                  :key="mhs.id"
-                  class="hover:bg-slate-50/75 transition-colors"
-                >
-                  <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
-                    {{ mhs.nim }}
-                  </td>
-                  <td class="py-3.5 px-4 font-medium text-slate-800">
-                    {{ mhs.nama }}
-                  </td>
-                  <td class="py-3.5 px-4 text-right">
-                    <button
-                      type="button"
-                      @click="konfirmasiKeluarkanMahasiswa(mhs)"
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors"
-                      title="Keluarkan dari kelas"
-                    >
-                      <UserMinus class="w-3.5 h-3.5" />
-                      <span>Keluarkan</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div v-else class="space-y-3">
+          <!-- Kotak Pencarian Mahasiswa Terdaftar -->
+          <div class="relative max-w-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <Search class="w-4 h-4" />
+            </div>
+            <input
+              v-model="kataKunciMahasiswa"
+              type="text"
+              placeholder="Cari mahasiswa terdaftar (NIM/nama)..."
+              class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+            />
           </div>
-          <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500">
-            Total {{ mahasiswaKelas.length }} mahasiswa terdaftar
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  <tr>
+                    <th scope="col" class="py-3.5 px-4 w-44">NIM</th>
+                    <th scope="col" class="py-3.5 px-4">Nama Mahasiswa</th>
+                    <th scope="col" class="py-3.5 px-4 w-32 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr
+                    v-for="mhs in daftarMahasiswaKelasTampil"
+                    :key="mhs.id"
+                    class="hover:bg-slate-50/75 transition-colors"
+                  >
+                    <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
+                      {{ mhs.nim }}
+                    </td>
+                    <td class="py-3.5 px-4 font-medium text-slate-800">
+                      {{ mhs.nama }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                      <button
+                        type="button"
+                        @click="konfirmasiKeluarkanMahasiswa(mhs)"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors"
+                        title="Keluarkan dari kelas"
+                      >
+                        <UserMinus class="w-3.5 h-3.5" />
+                        <span>Keluarkan</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr v-if="daftarMahasiswaKelasTampil.length === 0">
+                    <td colspan="3" class="py-8 text-center text-slate-500 text-sm">
+                      Tidak ada mahasiswa terdaftar yang cocok dengan pencarian "{{ kataKunciMahasiswa }}".
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+              <span>Menampilkan {{ daftarMahasiswaKelasTampil.length }} dari {{ mahasiswaKelas.length }} mahasiswa terdaftar</span>
+            </div>
           </div>
         </div>
       </div>
@@ -359,52 +391,66 @@
           :icon="BarChart2"
         />
 
-        <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-700">
-              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                <tr>
-                  <th scope="col" class="py-3.5 px-4 w-36">NIM</th>
-                  <th scope="col" class="py-3.5 px-4">Nama</th>
-                  <th scope="col" class="py-3.5 px-3 text-center w-20">
-                    <span class="inline-flex items-center gap-1">
-                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <span>Hadir</span>
-                    </span>
-                  </th>
-                  <th scope="col" class="py-3.5 px-3 text-center w-20">
-                    <span class="inline-flex items-center gap-1">
-                      <span class="w-2 h-2 rounded-full bg-sky-500"></span>
-                      <span>Izin</span>
-                    </span>
-                  </th>
-                  <th scope="col" class="py-3.5 px-3 text-center w-20">
-                    <span class="inline-flex items-center gap-1">
-                      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                      <span>Sakit</span>
-                    </span>
-                  </th>
-                  <th scope="col" class="py-3.5 px-3 text-center w-20">
-                    <span class="inline-flex items-center gap-1">
-                      <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                      <span>Alpa</span>
-                    </span>
-                  </th>
-                  <th scope="col" class="py-3.5 px-4 w-48 text-right">Persentase</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr
-                  v-for="r in dataRekap.rekap"
-                  :key="r.mahasiswa_id"
-                  class="hover:bg-slate-50/75 transition-colors"
-                >
-                  <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
-                    {{ r.nim }}
-                  </td>
-                  <td class="py-3.5 px-4 font-medium text-slate-800">
-                    {{ r.nama }}
-                  </td>
+        <div v-else class="space-y-3">
+          <!-- Kotak Pencarian Rekap -->
+          <div class="relative max-w-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <Search class="w-4 h-4" />
+            </div>
+            <input
+              v-model="kataKunciRekap"
+              type="text"
+              placeholder="Cari mahasiswa di rekap (NIM/nama)..."
+              class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+            />
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  <tr>
+                    <th scope="col" class="py-3.5 px-4 w-36">NIM</th>
+                    <th scope="col" class="py-3.5 px-4">Nama</th>
+                    <th scope="col" class="py-3.5 px-3 text-center w-20">
+                      <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Hadir</span>
+                      </span>
+                    </th>
+                    <th scope="col" class="py-3.5 px-3 text-center w-20">
+                      <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                        <span>Izin</span>
+                      </span>
+                    </th>
+                    <th scope="col" class="py-3.5 px-3 text-center w-20">
+                      <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span>Sakit</span>
+                      </span>
+                    </th>
+                    <th scope="col" class="py-3.5 px-3 text-center w-20">
+                      <span class="inline-flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>Alpa</span>
+                      </span>
+                    </th>
+                    <th scope="col" class="py-3.5 px-4 w-48 text-right">Persentase</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr
+                    v-for="r in daftarRekapTampil"
+                    :key="r.mahasiswa_id"
+                    class="hover:bg-slate-50/75 transition-colors"
+                  >
+                    <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
+                      {{ r.nim }}
+                    </td>
+                    <td class="py-3.5 px-4 font-medium text-slate-800">
+                      {{ r.nama }}
+                    </td>
                   <td class="py-3.5 px-3 text-center tabular-nums font-semibold text-emerald-700">
                     {{ r.hadir }}
                   </td>
@@ -430,6 +476,12 @@
                         {{ Number(r.persentase).toFixed(1) }}%
                       </span>
                     </div>
+                  </td>
+                </tr>
+
+                <tr v-if="daftarRekapTampil.length === 0">
+                  <td colspan="7" class="py-8 text-center text-slate-500 text-sm">
+                    Tidak ada mahasiswa di rekap yang cocok dengan pencarian "{{ kataKunciRekap }}".
                   </td>
                 </tr>
               </tbody>
@@ -458,7 +510,8 @@
           </div>
         </div>
       </div>
-    </template>
+    </div>
+  </template>
 
     <!-- Modal Form Tambah / Ubah Pertemuan -->
     <ModalDialog
@@ -579,7 +632,8 @@ import {
   UserPlus,
   UserMinus,
   RotateCcw,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-vue-next';
 
 // Ambang batas persentase kehadiran
@@ -633,10 +687,13 @@ const mendaftar = ref(false);
 const showConfirmKeluarkan = ref(false);
 const mahasiswaAkanDikeluarkan = ref(null);
 const removingMahasiswa = ref(false);
+const kataKunciMahasiswa = ref('');
+const kataKunciKandidat = ref('');
 
 // Data Tab Rekap
 const dataRekap = ref({ pertemuan_tercatat: 0, rekap: [] });
 const loadingRekap = ref(false);
+const kataKunciRekap = ref('');
 
 // Hitungan statistik
 const jumlahPertemuanTercatat = computed(() => {
@@ -653,6 +710,31 @@ const rataRataKehadiran = computed(() => {
 const kandidatMahasiswa = computed(() => {
   const idsTerdaftar = new Set(mahasiswaKelas.value.map((m) => m.id));
   return semuaMasterMahasiswa.value.filter((m) => !idsTerdaftar.has(m.id));
+});
+
+const kandidatMahasiswaTampil = computed(() => {
+  const q = kataKunciKandidat.value.trim().toLowerCase();
+  if (!q) return kandidatMahasiswa.value;
+  return kandidatMahasiswa.value.filter(
+    (m) => m.nim.toLowerCase().includes(q) || m.nama.toLowerCase().includes(q)
+  );
+});
+
+const daftarMahasiswaKelasTampil = computed(() => {
+  const q = kataKunciMahasiswa.value.trim().toLowerCase();
+  if (!q) return mahasiswaKelas.value;
+  return mahasiswaKelas.value.filter(
+    (m) => m.nim.toLowerCase().includes(q) || m.nama.toLowerCase().includes(q)
+  );
+});
+
+const daftarRekapTampil = computed(() => {
+  const list = dataRekap.value.rekap || [];
+  const q = kataKunciRekap.value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(
+    (r) => r.nim.toLowerCase().includes(q) || r.nama.toLowerCase().includes(q)
+  );
 });
 
 const pesanHapusPertemuan = computed(() => {
