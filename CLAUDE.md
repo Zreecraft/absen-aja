@@ -1,47 +1,38 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# Project: Absen Aja
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+## Deskripsi singkat
+Aplikasi web fullstack untuk mencatat dan merekap kehadiran mahasiswa per kelas. Fitur: kelola kelas dan mahasiswa, daftarkan mahasiswa ke kelas, buat pertemuan, input kehadiran satu layar per pertemuan, rekap per kelas. Di luar cakupan: login dan hak akses.
 
-## Prerequisites
+## Teknologi yang dipakai dan cara menjalankan
+- Backend: Laravel 13 (PHP 8.3+) sebagai REST API di `/api`.
+- Frontend: Vue 3 (JavaScript, bukan TypeScript) + Vue Router + Vite, Composition API dengan `<script setup>`. Tailwind CSS 4, ikon lucide-vue-next, font Inter dari paket npm. Satu SPA disajikan lewat route catch-all Laravel.
+- Database: PostgreSQL (database `absen_aja`; test memakai `absen_aja_test`).
+- Jalankan: `composer install`, `npm install`, salin `.env.example` ke `.env`, `php artisan key:generate`, `php artisan migrate --seed`, lalu `composer dev` (http://localhost:8000).
+- Test: `php artisan test`. Build: `npm run build`.
 
-Verify that PHP and Composer are available:
+## Aturan bisnis penting
+- Hanya mahasiswa yang terdaftar di kelas yang boleh dicatat kehadirannya (validasi di backend dan foreign key gabungan di DB).
+- Status hanya: `hadir`, `izin`, `sakit`, `alpa` (enum `StatusKehadiran` dan CHECK di DB).
+- Persentase = hadir / pertemuan yang sudah dicatat x 100. Izin dan sakit TIDAK dihitung hadir. Pertemuan yang belum diisi tidak masuk penyebut. Dihitung dalam satu query PostgreSQL di `App\Services\RekapKehadiran`.
+- Mahasiswa yang sudah punya kehadiran di sebuah kelas tidak boleh dikeluarkan dari kelas itu; mahasiswa yang masih terdaftar di kelas tidak boleh dihapus (HTTP 422, pesan Bahasa Indonesia).
+- Hapus kelas menghapus pertemuan, pendaftaran, dan kehadirannya (cascade).
+- PUT kehadiran adalah upsert dalam satu transaksi, idempotent, semua-atau-tidak-sama-sekali.
 
-```sh
-php -v
-composer -V
-```
+## Aturan penulisan kode
+- Sederhana dan mudah dijelaskan baris per baris oleh pemilik project. Tanpa repository pattern dan abstraksi berlebihan.
+- Controller tipis; validasi di FormRequest; response lewat API Resource; logika rekap hanya di `RekapKehadiran`.
+- Tidak boleh ada N+1 query. Query mentah wajib memakai binding parameter.
+- Pesan validasi, error, dan teks antarmuka dalam Bahasa Indonesia.
+- Frontend: satu komponen satu tugas; panggilan API hanya lewat `resources/js/api.js`; warna dan label status hanya di `resources/js/status.js`.
+- Komentar singkat hanya untuk bagian yang tidak obvious (foreign key gabungan, query rekap, upsert).
+- Commit bertahap, format conventional commits (`feat:`, `fix:`, `test:`, `chore:`, `docs:`).
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
-
-macOS:
-
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
-```
-
-Windows PowerShell:
-
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
-
-Linux:
-
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
-
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
-
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+## Hal yang tidak boleh dilakukan AI
+- Jangan memakai Livewire, Inertia, MySQL, atau SQLite.
+- Jangan menambah package di luar yang sudah ada tanpa persetujuan pemilik.
+- Jangan menambah fitur di luar kebutuhan (login, export, dan sejenisnya).
+- Jangan mengubah migration yang sudah ada secara diam-diam; laporkan dulu bila menemukan bug.
+- Jangan menjalankan `migrate:fresh` pada database `absen_aja` tanpa diminta, dan jangan menghapus data selain data uji.
+- Jangan commit `.env`, password, atau kredensial apa pun.
+- Jangan memakai `git add .` saat ada agent lain bekerja di repo yang sama; commit dengan path eksplisit.
+- Jangan menulis kode yang tidak bisa dijelaskan pemilik; bila ragu, pilih solusi yang lebih sederhana.

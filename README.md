@@ -1,58 +1,164 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Absen Aja
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web untuk mencatat dan merekap kehadiran mahasiswa per kelas. Dibuat untuk menggantikan pencatatan kehadiran di kertas yang sering salah rekap dan lambat di akhir semester.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Kelola data kelas (mata kuliah, nama kelas, dosen) dan mahasiswa (NIM, nama): tambah, lihat, ubah, hapus.
+- Daftarkan dan keluarkan mahasiswa dari kelas.
+- Buat pertemuan untuk sebuah kelas (pertemuan ke-berapa dan tanggal).
+- Input kehadiran seluruh mahasiswa satu kelas dalam satu layar (hadir, izin, sakit, alpa).
+- Rekap kehadiran per kelas: jumlah tiap status dan persentase kehadiran setiap mahasiswa.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Teknologi
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Bagian | Pilihan |
+|---|---|
+| Backend | Laravel 13 (PHP 8.3+), REST API |
+| Frontend | Vue 3 (JavaScript), Vue Router, Vite |
+| Tampilan | Tailwind CSS 4, ikon lucide-vue-next, font Inter |
+| Database | PostgreSQL |
 
-## Learning Laravel
+Backend dan frontend berada di satu repo. Laravel menyajikan API di `/api` dan satu halaman SPA untuk semua alamat lainnya. Komponen antarmuka (modal, toast, tab) dibuat sendiri tanpa library komponen jadi.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Prasyarat
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.3 atau lebih baru, dengan ekstensi `pdo_pgsql` dan `pgsql` aktif
+- Composer
+- Node.js 20 atau lebih baru
+- PostgreSQL (port 5432)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Instalasi dan menjalankan
 
 ```bash
-composer require laravel/boost --dev
+# 1. Pasang dependensi
+composer install
+npm install
 
-php artisan boost:install
+# 2. Siapkan environment
+cp .env.example .env
+php artisan key:generate
+
+# 3. Buat database di PostgreSQL
+psql -U postgres -c "CREATE DATABASE absen_aja;"
+
+# 4. Atur koneksi database di .env
+#    DB_CONNECTION=pgsql
+#    DB_HOST=127.0.0.1
+#    DB_PORT=5432
+#    DB_DATABASE=absen_aja
+#    DB_USERNAME=postgres
+#    DB_PASSWORD=<password kamu>
+
+# 5. Buat tabel dan isi data contoh
+php artisan migrate --seed
+
+# 6. Jalankan aplikasi (server Laravel + Vite)
+composer dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Buka `http://localhost:8000`.
 
-## Contributing
+Catatan Windows (Laragon): jika `psql` tidak dikenali, jalankan dengan path lengkap, mis. `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -c "CREATE DATABASE absen_aja;"`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Untuk build produksi: `npm run build`.
 
-## Code of Conduct
+Data contoh berisi 3 kelas, sekitar 15 mahasiswa, beberapa pertemuan per kelas, dan kehadiran yang bervariasi, sehingga rekap langsung terlihat berisi. Ada satu pertemuan yang sengaja belum diisi untuk memperlihatkan aturan penyebut persentase. Untuk mengulang dari awal: `php artisan migrate:fresh --seed`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Halaman
 
-## Security Vulnerabilities
+| Alamat | Fungsi |
+|---|---|
+| `/kelas` | Daftar, tambah, ubah, hapus kelas |
+| `/kelas/:id` | Detail kelas dengan tab Pertemuan, Mahasiswa, dan Rekap |
+| `/kelas/:id/pertemuan/:pid` | Input kehadiran seluruh mahasiswa untuk satu pertemuan |
+| `/mahasiswa` | Daftar, tambah, ubah, hapus mahasiswa |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Skema database
 
-## License
+| Tabel | Kolom utama | Constraint penting |
+|---|---|---|
+| `kelas` | mata_kuliah, nama_kelas, dosen | |
+| `mahasiswa` | nim, nama | `nim` unik |
+| `kelas_mahasiswa` | kelas_id, mahasiswa_id | primary key gabungan |
+| `pertemuan` | kelas_id, nomor, tanggal | unik (kelas_id, nomor); nomor > 0 |
+| `kehadiran` | pertemuan_id, kelas_id, mahasiswa_id, status | unik (pertemuan_id, mahasiswa_id); CHECK status; dua foreign key gabungan |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Aturan bisnis dijaga sampai ke level database, tidak hanya di kode:
+
+- Kolom `status` dibatasi CHECK ke empat nilai: `hadir`, `izin`, `sakit`, `alpa`.
+- Foreign key gabungan `(kelas_id, mahasiswa_id)` ke `kelas_mahasiswa` membuat mahasiswa yang tidak terdaftar di sebuah kelas mustahil dicatat kehadirannya, bahkan bila ada bug di backend.
+- Foreign key gabungan `(pertemuan_id, kelas_id)` ke `pertemuan` menjamin pertemuan dan kelas yang dicatat selalu cocok. Kolom `kelas_id` di `kehadiran` sengaja redundan demi dua constraint ini.
+
+## Endpoint API
+
+| Method | Path | Keterangan |
+|---|---|---|
+| GET, POST | `/api/kelas` | Daftar dan tambah kelas |
+| GET, PUT, DELETE | `/api/kelas/{kelas}` | Lihat, ubah, hapus kelas |
+| GET, POST | `/api/mahasiswa` | Daftar dan tambah mahasiswa |
+| GET, PUT, DELETE | `/api/mahasiswa/{mahasiswa}` | Lihat, ubah, hapus mahasiswa |
+| GET, POST | `/api/kelas/{kelas}/mahasiswa` | Daftar mahasiswa kelas dan mendaftarkan |
+| DELETE | `/api/kelas/{kelas}/mahasiswa/{mahasiswa}` | Keluarkan mahasiswa dari kelas |
+| GET, POST | `/api/kelas/{kelas}/pertemuan` | Daftar dan buat pertemuan |
+| PUT, DELETE | `/api/pertemuan/{pertemuan}` | Ubah dan hapus pertemuan |
+| GET, PUT | `/api/pertemuan/{pertemuan}/kehadiran` | Lihat dan simpan kehadiran satu pertemuan |
+| GET | `/api/kelas/{kelas}/rekap` | Rekap kehadiran per kelas |
+
+Kesalahan validasi dan pelanggaran aturan bisnis mengembalikan HTTP 422 dengan pesan Bahasa Indonesia. Daftar lengkap rute: `php artisan route:list --path=api`.
+
+## Aturan perhitungan persentase
+
+```
+persentase = hadir / pertemuan yang sudah dicatat x 100
+```
+
+- **Hanya status `hadir` yang dihitung hadir.** Izin dan sakit tidak dihitung hadir, tetapi tetap ditampilkan sebagai kolom tersendiri agar dosen bisa melihat alasan ketidakhadiran. Alasannya: persentase kehadiran biasanya dipakai sebagai syarat mengikuti ujian, sehingga definisi yang ketat lebih aman. Aturan ini hanya berada di satu tempat (class `RekapKehadiran`) sehingga mudah diubah.
+- **Penyebut adalah pertemuan yang sudah punya catatan kehadiran.** Pertemuan yang sudah dibuat tetapi belum diisi tidak menurunkan persentase.
+- Jika belum ada pertemuan yang dicatat, persentase 0.
+- Hasil dibulatkan satu angka desimal.
+- Perhitungan dilakukan dalam satu query PostgreSQL (`COUNT(*) FILTER (WHERE status = ...)`), bukan di PHP atau Vue.
+- Di tampilan rekap, persentase di bawah 75 diberi warna peringatan. Ambang ini hanya penanda visual dan tidak memengaruhi data.
+
+## Asumsi
+
+1. Tidak ada login atau hak akses (di luar cakupan soal).
+2. Satu mahasiswa boleh terdaftar di lebih dari satu kelas.
+3. Mahasiswa yang **sudah punya data kehadiran** di sebuah kelas tidak bisa dikeluarkan dari kelas itu, supaya data absen tidak hilang diam-diam. Jika belum ada kehadiran, boleh.
+4. Mahasiswa yang **masih terdaftar di suatu kelas** tidak bisa dihapus. Keluarkan dulu dari kelas.
+5. Menghapus kelas ikut menghapus pertemuan, pendaftaran, dan kehadirannya.
+6. Nomor pertemuan terisi otomatis (nomor terakhir + 1) bila dikosongkan, dan unik per kelas.
+7. Pertemuan yang belum pernah dicatat diberi default "hadir" di layar input; dosen cukup mengubah yang tidak hadir. Data baru tersimpan setelah tombol Simpan ditekan.
+8. Menyimpan kehadiran bersifat upsert dalam satu transaksi: dikirim ulang tidak membuat data ganda, dan bila ada satu data tidak valid, tidak ada yang tersimpan.
+
+## Menjalankan test
+
+Test memakai database PostgreSQL terpisah agar data asli tidak tersentuh:
+
+```bash
+psql -U postgres -c "CREATE DATABASE absen_aja_test;"
+php artisan test
+```
+
+Test mencakup perhitungan rekap, penolakan mahasiswa yang tidak terdaftar, penolakan status tidak valid, upsert yang idempotent, aturan hapus dan keluarkan, nomor pertemuan, cascade penghapusan kelas, serta constraint database.
+
+## Struktur singkat
+
+```
+app/Enums/StatusKehadiran.php        Enum empat status
+app/Models/                          Kelas, Mahasiswa, Pertemuan, Kehadiran
+app/Http/Controllers/                Controller tipis per resource
+app/Http/Requests/                   Validasi input
+app/Http/Resources/                  Bentuk response JSON
+app/Services/RekapKehadiran.php      Query rekap
+database/migrations/                 Skema dan constraint
+database/seeders/                    Data contoh
+resources/js/                        Aplikasi Vue (halaman, komponen, router, helper API)
+resources/css/app.css                Tailwind dan tema warna
+routes/api.php                       Rute API
+tests/Feature/                       Feature test
+```
+
+## Catatan pengerjaan dengan AI
+
+Proyek ini dikerjakan dengan bantuan AI coding assistant. Catatannya ada di [AI_NOTES.md](AI_NOTES.md) dan konteks untuk AI ada di [CLAUDE.md](CLAUDE.md).
