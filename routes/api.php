@@ -3,6 +3,7 @@
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\KelasMahasiswaController;
 use App\Http\Controllers\MahasiswaController;
+use App\Http\Controllers\PertemuanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,3 +19,11 @@ Route::apiResource('mahasiswa', MahasiswaController::class);
 Route::apiResource('kelas.mahasiswa', KelasMahasiswaController::class)
     ->only(['index', 'store', 'destroy'])
     ->parameters(['kelas' => 'kelas', 'mahasiswa' => 'mahasiswa']);
+
+// Pertemuan: daftar/buat di dalam kelas, ubah/hapus lewat /api/pertemuan/{pertemuan}
+Route::apiResource('kelas.pertemuan', PertemuanController::class)
+    ->only(['index', 'store'])
+    ->parameters(['kelas' => 'kelas', 'pertemuan' => 'pertemuan']);
+Route::apiResource('pertemuan', PertemuanController::class)
+    ->only(['update', 'destroy'])
+    ->parameters(['pertemuan' => 'pertemuan']);
