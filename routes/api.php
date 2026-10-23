@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\KelasMahasiswaController;
+use App\Http\Controllers\KehadiranController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\PertemuanController;
 use Illuminate\Http\Request;
@@ -27,3 +28,7 @@ Route::apiResource('kelas.pertemuan', PertemuanController::class)
 Route::apiResource('pertemuan', PertemuanController::class)
     ->only(['update', 'destroy'])
     ->parameters(['pertemuan' => 'pertemuan']);
+
+// Kehadiran satu pertemuan (GET = lembar absensi, PUT = simpan sekaligus)
+Route::get('/pertemuan/{pertemuan}/kehadiran', [KehadiranController::class, 'show']);
+Route::put('/pertemuan/{pertemuan}/kehadiran', [KehadiranController::class, 'update']);
