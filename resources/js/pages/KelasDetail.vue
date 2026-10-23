@@ -1,395 +1,880 @@
 <template>
-  <div v-if="loadingKelas" class="teks-muted">Memuat...</div>
-  <div v-else-if="!kelas" class="teks-muted">Kelas tidak ditemukan.</div>
-  <template v-else>
-    <!-- Header halaman -->
-    <div class="hal-header">
-      <h1>{{ kelas.mata_kuliah }} — {{ kelas.nama_kelas }}</h1>
-      <p>Dosen: {{ kelas.dosen }}</p>
-      <router-link to="/kelas">Kembali ke daftar kelas</router-link>
+  <div>
+    <!-- Loading State Awal -->
+    <LoadingState v-if="loadingKelas" text="Memuat detail kelas..." />
+
+    <!-- Error State Jika Kelas Tidak Ditemukan -->
+    <div
+      v-else-if="errorKelas"
+      class="p-6 rounded-xl border border-rose-200 bg-rose-50 text-center text-rose-800"
+    >
+      <p class="font-medium text-sm mb-3">{{ errorKelas }}</p>
+      <router-link
+        to="/kelas"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-white border border-rose-300 rounded-md hover:bg-rose-100"
+      >
+        <ArrowLeft class="w-3.5 h-3.5" />
+        <span>Kembali ke Daftar Kelas</span>
+      </router-link>
     </div>
 
-    <!-- Tab navigasi -->
-    <div class="tab-nav">
-      <button @click="tabAktif = 'pertemuan'" :class="{ aktif: tabAktif === 'pertemuan' }">Pertemuan</button>
-      <button @click="tabAktif = 'mahasiswa';  muatMahasiswa()" :class="{ aktif: tabAktif === 'mahasiswa' }">Mahasiswa</button>
-      <button @click="tabAktif = 'rekap';      muatRekap()"     :class="{ aktif: tabAktif === 'rekap' }">Rekap</button>
-    </div>
-
-    <!-- ================= TAB PERTEMUAN ================= -->
-    <div v-show="tabAktif === 'pertemuan'">
-      <div class="form">
-        <h2>Tambah Pertemuan</h2>
-        <form @submit.prevent="simpanPertemuan">
-          <div class="form__baris">
-            <label for="nomor-pertemuan">Nomor (opsional)</label>
-            <input id="nomor-pertemuan" v-model="formPertemuan.nomor" type="number" min="1" style="max-width:120px" />
-            <div class="form__petunjuk">Kosongkan untuk nomor berikutnya secara otomatis.</div>
-            <div v-if="errPertemuan.nomor" class="form__error">{{ errPertemuan.nomor[0] }}</div>
-          </div>
-          <div class="form__baris">
-            <label for="tanggal-pertemuan">Tanggal</label>
-            <input id="tanggal-pertemuan" v-model="formPertemuan.tanggal" type="date" style="max-width:200px" />
-            <div v-if="errPertemuan.tanggal" class="form__error">{{ errPertemuan.tanggal[0] }}</div>
-          </div>
-          <div class="form__aksi">
-            <button type="submit" class="btn btn--utama" :disabled="loadingPertemuan">Tambah</button>
-          </div>
-        </form>
+    <!-- Konten Utama Kelas -->
+    <template v-else-if="kelas">
+      <!-- Breadcrumb / Tombol Kembali -->
+      <div class="mb-3">
+        <router-link
+          to="/kelas"
+          class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-600 transition-colors"
+        >
+          <ArrowLeft class="w-4 h-4" />
+          <span>Kembali ke daftar kelas</span>
+        </router-link>
       </div>
 
-      <div v-if="pesanPertemuan" class="pesan-global pesan-global--gagal" style="padding:0;margin-bottom:12px;">
-        {{ pesanPertemuan }}
-      </div>
-
-      <!-- Form ubah pertemuan (tampil bila ada yang dipilih untuk diubah) -->
-      <div v-if="editPertemuan" class="form" style="margin-top:0;padding:12px;border:1px solid var(--warna-border);">
-        <h2>Ubah Pertemuan {{ editPertemuan.nomor }}</h2>
-        <form @submit.prevent="perbaruiPertemuan">
-          <div class="form__baris">
-            <label for="edit-tanggal">Tanggal</label>
-            <input id="edit-tanggal" v-model="formUbahPertemuan.tanggal" type="date" style="max-width:200px" />
-          </div>
-          <div class="form__aksi">
-            <button type="submit" class="btn btn--utama" :disabled="loadingPertemuan">Simpan</button>
-            <button type="button" class="btn" @click="editPertemuan = null">Batal</button>
-          </div>
-        </form>
-      </div>
-
-      <div v-if="loadingPertemuan && !pertemuan.length" class="teks-muted">Memuat pertemuan...</div>
-      <div v-else-if="!pertemuan.length" class="teks-muted">Belum ada pertemuan.</div>
-      <div v-else class="tabel-pembungkus" style="margin-top:16px">
-        <table>
-          <thead>
-            <tr>
-              <th>Nomor</th>
-              <th>Tanggal</th>
-              <th>Kehadiran</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in pertemuan" :key="p.id">
-              <td>{{ p.nomor }}</td>
-              <td>{{ formatTanggal(p.tanggal) }}</td>
-              <td>
-                <span v-if="p.jumlah_tercatat > 0">Sudah dicatat ({{ p.jumlah_tercatat }})</span>
-                <span v-else class="teks-muted">Belum dicatat</span>
-              </td>
-              <td>
-                <div class="aksi">
-                  <router-link :to="`/kelas/${kelas.id}/pertemuan/${p.id}`" class="btn">Input Kehadiran</router-link>
-                  <button class="btn" @click="mulaEditPertemuan(p)">Ubah</button>
-                  <button class="btn--hapus" @click="hapusPertemuan(p)">Hapus</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ================= TAB MAHASISWA ================= -->
-    <div v-show="tabAktif === 'mahasiswa'">
-      <!-- Pilih dan daftarkan mahasiswa -->
-      <div class="form">
-        <h2>Daftarkan Mahasiswa</h2>
-        <div v-if="!mahasiswaBelumDaftar.length" class="teks-muted" style="margin-bottom:8px">
-          Semua mahasiswa sudah terdaftar di kelas ini.
-        </div>
-        <template v-else>
-          <div class="form__baris">
-            <label for="pilih-mahasiswa">Pilih Mahasiswa</label>
-            <select id="pilih-mahasiswa" v-model="pilihMahasiswaId" style="max-width:300px">
-              <option value="">-- pilih mahasiswa --</option>
-              <option v-for="m in mahasiswaBelumDaftar" :key="m.id" :value="m.id">
-                {{ m.nim }} - {{ m.nama }}
-              </option>
-            </select>
-          </div>
-          <div class="form__aksi">
-            <button class="btn btn--utama" :disabled="!pilihMahasiswaId || loadingMhs" @click="daftarkan">Daftarkan</button>
-          </div>
+      <!-- Header Halaman -->
+      <PageHeader
+        :title="kelas.mata_kuliah"
+        :description="`Dosen: ${kelas.dosen}`"
+      >
+        <template #badge>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+            {{ kelas.nama_kelas }}
+          </span>
         </template>
-        <div v-if="pesanMhs" class="pesan-global pesan-global--gagal" style="padding:0;margin-top:10px;">{{ pesanMhs }}</div>
-      </div>
+        <template #actions>
+          <button
+            v-if="tabAktif === 'pertemuan'"
+            type="button"
+            @click="bukaModalTambahPertemuan"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Buat Pertemuan</span>
+          </button>
+        </template>
+      </PageHeader>
 
-      <!-- Tabel mahasiswa terdaftar -->
-      <div v-if="loadingMhs && !mahasiswaTerdaftar.length" class="teks-muted">Memuat...</div>
-      <div v-else-if="!mahasiswaTerdaftar.length" class="teks-muted">Belum ada mahasiswa terdaftar.</div>
-      <div v-else class="tabel-pembungkus">
-        <table>
-          <thead>
-            <tr>
-              <th>NIM</th>
-              <th>Nama</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="m in mahasiswaTerdaftar" :key="m.id">
-              <td>{{ m.nim }}</td>
-              <td>{{ m.nama }}</td>
-              <td>
-                <button class="btn--hapus" @click="keluarkan(m)">Keluarkan</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ================= TAB REKAP ================= -->
-    <div v-show="tabAktif === 'rekap'">
-      <div v-if="loadingRekap" class="teks-muted">Memuat rekap...</div>
-      <template v-else>
-        <p class="teks-muted" style="margin-bottom:10px;">
-          Dihitung dari {{ rekap.pertemuan_tercatat ?? 0 }} pertemuan yang sudah dicatat.
-        </p>
-        <div v-if="!rekap.data?.length" class="teks-muted">Belum ada data rekap.</div>
-        <div v-else class="tabel-pembungkus">
-          <table>
-            <thead>
-              <tr>
-                <th>NIM</th>
-                <th>Nama</th>
-                <th>Hadir</th>
-                <th>Izin</th>
-                <th>Sakit</th>
-                <th>Alpa</th>
-                <th>Persentase</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in rekap.data" :key="r.mahasiswa_id">
-                <td>{{ r.nim }}</td>
-                <td>{{ r.nama }}</td>
-                <td>{{ r.hadir }}</td>
-                <td>{{ r.izin }}</td>
-                <td>{{ r.sakit }}</td>
-                <td>{{ r.alpa }}</td>
-                <td>
-                  <span :class="r.persentase < AMBANG_RENDAH ? 'teks-rendah' : ''">
-                    {{ r.persentase.toFixed(1) }}%
-                    <span v-if="r.persentase < AMBANG_RENDAH"> rendah</span>
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="teks-keterangan">Izin dan sakit tidak dihitung hadir.</p>
+      <!-- Baris Ringkasan (3 Kartu Statistik) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium">Jumlah Mahasiswa</span>
+            <Users class="w-4 h-4 text-slate-400" />
+          </div>
+          <div class="text-2xl font-bold text-slate-900 tabular-nums">
+            {{ kelas.mahasiswa_count || mahasiswaKelas.length || 0 }}
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Mahasiswa terdaftar di kelas</p>
         </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium">Pertemuan Dicatat</span>
+            <Calendar class="w-4 h-4 text-slate-400" />
+          </div>
+          <div class="text-2xl font-bold text-slate-900 tabular-nums">
+            {{ jumlahPertemuanTercatat }} <span class="text-sm font-normal text-slate-400">dari {{ daftarPertemuan.length }}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Presensi sudah diisi</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium">Rata-rata Kehadiran</span>
+            <BarChart2 class="w-4 h-4 text-slate-400" />
+          </div>
+          <div class="text-2xl font-bold text-slate-900 tabular-nums">
+            {{ rataRataKehadiran }}%
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Dari rekap pertemuan tercatat</p>
+        </div>
+      </div>
+
+      <!-- Navigasi Tab -->
+      <div class="border-b border-slate-200 mb-6">
+        <nav class="flex gap-2" aria-label="Tab Informasi Kelas">
+          <button
+            type="button"
+            @click="gantiTab('pertemuan')"
+            :class="[
+              'inline-flex items-center gap-2 py-3 px-4 border-b-2 text-sm font-medium transition-colors',
+              tabAktif === 'pertemuan'
+                ? 'border-brand-600 text-brand-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            ]"
+          >
+            <Calendar class="w-4 h-4" />
+            <span>Pertemuan</span>
+            <span
+              class="ml-1 px-2 py-0.5 rounded-full text-xs"
+              :class="tabAktif === 'pertemuan' ? 'bg-brand-100 text-brand-800' : 'bg-slate-100 text-slate-600'"
+            >
+              {{ daftarPertemuan.length }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            @click="gantiTab('mahasiswa')"
+            :class="[
+              'inline-flex items-center gap-2 py-3 px-4 border-b-2 text-sm font-medium transition-colors',
+              tabAktif === 'mahasiswa'
+                ? 'border-brand-600 text-brand-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            ]"
+          >
+            <Users class="w-4 h-4" />
+            <span>Mahasiswa</span>
+            <span
+              class="ml-1 px-2 py-0.5 rounded-full text-xs"
+              :class="tabAktif === 'mahasiswa' ? 'bg-brand-100 text-brand-800' : 'bg-slate-100 text-slate-600'"
+            >
+              {{ mahasiswaKelas.length }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            @click="gantiTab('rekap')"
+            :class="[
+              'inline-flex items-center gap-2 py-3 px-4 border-b-2 text-sm font-medium transition-colors',
+              tabAktif === 'rekap'
+                ? 'border-brand-600 text-brand-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            ]"
+          >
+            <BarChart2 class="w-4 h-4" />
+            <span>Rekap Kehadiran</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 1: PERTEMUAN -->
+      <!-- ============================================== -->
+      <div v-if="tabAktif === 'pertemuan'">
+        <LoadingState v-if="loadingPertemuan" text="Memuat daftar pertemuan..." />
+
+        <EmptyState
+          v-else-if="daftarPertemuan.length === 0"
+          title="Belum ada pertemuan"
+          description="Buat pertemuan untuk mulai mencatat presensi mahasiswa pada kelas ini."
+          action-text="Buat Pertemuan Pertama"
+          :icon="Calendar"
+          @action="bukaModalTambahPertemuan"
+        />
+
+        <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th scope="col" class="py-3.5 px-4 w-24">Nomor</th>
+                  <th scope="col" class="py-3.5 px-4">Tanggal Pertemuan</th>
+                  <th scope="col" class="py-3.5 px-4">Status Presensi</th>
+                  <th scope="col" class="py-3.5 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="p in daftarPertemuan"
+                  :key="p.id"
+                  class="hover:bg-slate-50/75 transition-colors"
+                >
+                  <td class="py-3.5 px-4 font-semibold text-slate-900 tabular-nums">
+                    Ke-{{ p.nomor }}
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-slate-800">
+                    {{ formatTanggal(p.tanggal) }}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <span
+                      v-if="p.kehadiran_count > 0"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Sudah dicatat ({{ p.kehadiran_count }} mhs)
+                    </span>
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Belum dicatat
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 text-right">
+                    <div class="inline-flex items-center gap-2">
+                      <router-link
+                        :to="`/kelas/${kelasId}/pertemuan/${p.id}`"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors border border-brand-200"
+                      >
+                        <CheckSquare class="w-3.5 h-3.5" />
+                        <span>Input Kehadiran</span>
+                      </router-link>
+
+                      <button
+                        type="button"
+                        @click="bukaModalEditPertemuan(p)"
+                        class="p-1.5 text-slate-400 hover:text-brand-600 rounded-md hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        title="Ubah Pertemuan"
+                      >
+                        <Pencil class="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="konfirmasiHapusPertemuan(p)"
+                        class="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                        title="Hapus Pertemuan"
+                      >
+                        <Trash2 class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: MAHASISWA -->
+      <!-- ============================================== -->
+      <div v-else-if="tabAktif === 'mahasiswa'" class="space-y-6">
+        <!-- Form Pendaftaran Mahasiswa ke Kelas -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          <h3 class="text-sm font-semibold text-slate-800 mb-3">
+            Daftarkan Mahasiswa ke Kelas Ini
+          </h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+              <select
+                v-model="mahasiswaDipilih"
+                class="block w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+              >
+                <option :value="null" disabled>
+                  -- Pilih mahasiswa yang belum terdaftar ({{ kandidatMahasiswa.length }} tersedia) --
+                </option>
+                <option
+                  v-for="mhs in kandidatMahasiswa"
+                  :key="mhs.id"
+                  :value="mhs.id"
+                >
+                  {{ mhs.nim }} - {{ mhs.nama }}
+                </option>
+              </select>
+            </div>
+            <button
+              type="button"
+              :disabled="!mahasiswaDipilih || mendaftar"
+              @click="daftarkanMahasiswa"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50"
+            >
+              <Loader2 v-if="mendaftar" class="w-4 h-4 animate-spin" />
+              <UserPlus v-else class="w-4 h-4" />
+              <span>Daftarkan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Daftar Mahasiswa Terdaftar -->
+        <LoadingState v-if="loadingMahasiswa" text="Memuat daftar mahasiswa kelas..." />
+
+        <EmptyState
+          v-else-if="mahasiswaKelas.length === 0"
+          title="Belum ada mahasiswa di kelas ini"
+          description="Gunakan dropdown di atas untuk mendaftarkan mahasiswa ke dalam kelas."
+          :icon="Users"
+        />
+
+        <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th scope="col" class="py-3.5 px-4 w-44">NIM</th>
+                  <th scope="col" class="py-3.5 px-4">Nama Mahasiswa</th>
+                  <th scope="col" class="py-3.5 px-4 w-32 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="mhs in mahasiswaKelas"
+                  :key="mhs.id"
+                  class="hover:bg-slate-50/75 transition-colors"
+                >
+                  <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
+                    {{ mhs.nim }}
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-slate-800">
+                    {{ mhs.nama }}
+                  </td>
+                  <td class="py-3.5 px-4 text-right">
+                    <button
+                      type="button"
+                      @click="konfirmasiKeluarkanMahasiswa(mhs)"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors"
+                      title="Keluarkan dari kelas"
+                    >
+                      <UserMinus class="w-3.5 h-3.5" />
+                      <span>Keluarkan</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500">
+            Total {{ mahasiswaKelas.length }} mahasiswa terdaftar
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: REKAP KEHADIRAN -->
+      <!-- ============================================== -->
+      <div v-else-if="tabAktif === 'rekap'" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p class="text-sm text-slate-600">
+            Dihitung dari <strong class="text-slate-900">{{ dataRekap.pertemuan_tercatat }}</strong> pertemuan yang sudah dicatat.
+          </p>
+          <button
+            type="button"
+            @click="muatRekap"
+            class="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 self-start"
+          >
+            <RotateCcw class="w-3.5 h-3.5" />
+            <span>Segarkan Rekap</span>
+          </button>
+        </div>
+
+        <LoadingState v-if="loadingRekap" text="Menghitung rekap kehadiran..." />
+
+        <EmptyState
+          v-else-if="!dataRekap.rekap || dataRekap.rekap.length === 0"
+          title="Belum ada data rekap"
+          description="Data rekap akan otomatis dihitung setelah mahasiswa didaftarkan dan presensi pertemuan dicatat."
+          :icon="BarChart2"
+        />
+
+        <div v-else class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th scope="col" class="py-3.5 px-4 w-36">NIM</th>
+                  <th scope="col" class="py-3.5 px-4">Nama</th>
+                  <th scope="col" class="py-3.5 px-3 text-center w-20">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span>Hadir</span>
+                    </span>
+                  </th>
+                  <th scope="col" class="py-3.5 px-3 text-center w-20">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                      <span>Izin</span>
+                    </span>
+                  </th>
+                  <th scope="col" class="py-3.5 px-3 text-center w-20">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                      <span>Sakit</span>
+                    </span>
+                  </th>
+                  <th scope="col" class="py-3.5 px-3 text-center w-20">
+                    <span class="inline-flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                      <span>Alpa</span>
+                    </span>
+                  </th>
+                  <th scope="col" class="py-3.5 px-4 w-48 text-right">Persentase</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="r in dataRekap.rekap"
+                  :key="r.mahasiswa_id"
+                  class="hover:bg-slate-50/75 transition-colors"
+                >
+                  <td class="py-3.5 px-4 font-mono font-medium text-slate-900 tabular-nums">
+                    {{ r.nim }}
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-slate-800">
+                    {{ r.nama }}
+                  </td>
+                  <td class="py-3.5 px-3 text-center tabular-nums font-semibold text-emerald-700">
+                    {{ r.hadir }}
+                  </td>
+                  <td class="py-3.5 px-3 text-center tabular-nums font-semibold text-sky-700">
+                    {{ r.izin }}
+                  </td>
+                  <td class="py-3.5 px-3 text-center tabular-nums font-semibold text-amber-700">
+                    {{ r.sakit }}
+                  </td>
+                  <td class="py-3.5 px-3 text-center tabular-nums font-semibold text-rose-700">
+                    {{ r.alpa }}
+                  </td>
+                  <td class="py-3.5 px-4 text-right">
+                    <div class="flex items-center justify-end gap-3">
+                      <!-- Bar Progress Tipis -->
+                      <div class="w-24 bg-slate-100 rounded-full h-2 overflow-hidden hidden sm:block">
+                        <div
+                          :class="['h-2 rounded-full transition-all', warnaPersentase(r.persentase).bar]"
+                          :style="{ width: `${Math.min(100, Math.max(0, r.persentase))}%` }"
+                        ></div>
+                      </div>
+                      <span :class="['font-semibold tabular-nums text-sm', warnaPersentase(r.persentase).text]">
+                        {{ Number(r.persentase).toFixed(1) }}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Legenda di Bawah Tabel -->
+          <div class="p-4 bg-slate-50/50 border-t border-slate-100 text-xs text-slate-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+              <strong>Catatan aturan presensi:</strong> Izin dan sakit tidak dihitung sebagai hadir.
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span>&ge; 75% Baik</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span>50 - 74% Cukup</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span>&lt; 50% Kurang</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Modal Form Tambah / Ubah Pertemuan -->
+    <ModalDialog
+      :show="showModalPertemuan"
+      :title="modEditPertemuan ? 'Ubah Pertemuan' : 'Buat Pertemuan Baru'"
+      @close="showModalPertemuan = false"
+    >
+      <form id="formPertemuan" @submit.prevent="simpanPertemuan" class="space-y-4">
+        <div>
+          <label for="input-tanggal-pertemuan" class="block text-sm font-medium text-slate-700 mb-1">
+            Tanggal Pertemuan
+          </label>
+          <input
+            id="input-tanggal-pertemuan"
+            v-model="formPertemuan.tanggal"
+            type="date"
+            required
+            :class="[
+              'block w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none transition-colors',
+              errorsPertemuan.tanggal
+                ? 'border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                : 'border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500'
+            ]"
+          />
+          <p v-if="errorsPertemuan.tanggal" class="text-xs text-rose-600 mt-1">
+            {{ errorsPertemuan.tanggal[0] }}
+          </p>
+        </div>
+
+        <div>
+          <label for="input-nomor-pertemuan" class="block text-sm font-medium text-slate-700 mb-1">
+            Nomor Pertemuan (Opsional)
+          </label>
+          <input
+            id="input-nomor-pertemuan"
+            v-model="formPertemuan.nomor"
+            type="number"
+            min="1"
+            placeholder="Kosongkan untuk otomatis nomor berikutnya"
+            :class="[
+              'block w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none transition-colors',
+              errorsPertemuan.nomor
+                ? 'border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                : 'border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500'
+            ]"
+          />
+          <p class="text-xs text-slate-500 mt-1">
+            Bila dikosongkan, sistem akan memberikan nomor pertemuan selanjutnya secara otomatis.
+          </p>
+          <p v-if="errorsPertemuan.nomor" class="text-xs text-rose-600 mt-1">
+            {{ errorsPertemuan.nomor[0] }}
+          </p>
+        </div>
+      </form>
+
+      <template #footer>
+        <button
+          type="button"
+          :disabled="submittingPertemuan"
+          @click="showModalPertemuan = false"
+          class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          form="formPertemuan"
+          :disabled="submittingPertemuan"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50"
+        >
+          <Loader2 v-if="submittingPertemuan" class="w-4 h-4 animate-spin" />
+          <span>{{ submittingPertemuan ? 'Menyimpan...' : 'Simpan' }}</span>
+        </button>
       </template>
-    </div>
-  </template>
+    </ModalDialog>
+
+    <!-- Dialog Konfirmasi Hapus Pertemuan -->
+    <ConfirmDialog
+      :show="showConfirmHapusPertemuan"
+      title="Hapus Pertemuan"
+      :message="pesanHapusPertemuan"
+      :loading="deletingPertemuan"
+      @confirm="eksekusiHapusPertemuan"
+      @cancel="showConfirmHapusPertemuan = false"
+    />
+
+    <!-- Dialog Konfirmasi Keluarkan Mahasiswa -->
+    <ConfirmDialog
+      :show="showConfirmKeluarkan"
+      title="Keluarkan Mahasiswa dari Kelas"
+      :message="pesanKeluarkanMahasiswa"
+      :loading="removingMahasiswa"
+      @confirm="eksekusiKeluarkanMahasiswa"
+      @cancel="showConfirmKeluarkan = false"
+    />
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, inject, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../api.js';
+import { useToast } from '../useToast.js';
+import PageHeader from '../components/PageHeader.vue';
+import LoadingState from '../components/LoadingState.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ModalDialog from '../components/ModalDialog.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
+import {
+  Calendar,
+  Users,
+  BarChart2,
+  ArrowLeft,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckSquare,
+  UserPlus,
+  UserMinus,
+  RotateCcw,
+  Loader2
+} from 'lucide-vue-next';
 
-// Ambang persentase rendah — mudah diubah di satu tempat
-const AMBANG_RENDAH = 75;
+// Ambang batas persentase kehadiran
+const AMBANG_PERSENTASE_TINGGI = 75;
+const AMBANG_PERSENTASE_SEDANG = 50;
+
+function warnaPersentase(persen) {
+  const p = Number(persen) || 0;
+  if (p >= AMBANG_PERSENTASE_TINGGI) {
+    return { bar: 'bg-emerald-500', text: 'text-emerald-700' };
+  }
+  if (p >= AMBANG_PERSENTASE_SEDANG) {
+    return { bar: 'bg-amber-500', text: 'text-amber-700' };
+  }
+  return { bar: 'bg-rose-500', text: 'text-rose-700' };
+}
 
 const route = useRoute();
+const router = useRouter();
+const toast = useToast();
+
 const kelasId = route.params.id;
-const tampilPesan = inject('tampilPesan');
 
-// ──────────────────────────────────────────
-//  State utama
-// ──────────────────────────────────────────
-const kelas        = ref(null);
+// Data kelas
+const kelas = ref(null);
 const loadingKelas = ref(true);
-const tabAktif     = ref('pertemuan');
+const errorKelas = ref('');
 
-// Tab Pertemuan
-const pertemuan       = ref([]);
+// Tab aktif (sinkron dengan query string ?tab=...)
+const tabAktif = ref(route.query.tab === 'mahasiswa' || route.query.tab === 'rekap' ? route.query.tab : 'pertemuan');
+
+// Data Tab Pertemuan
+const daftarPertemuan = ref([]);
 const loadingPertemuan = ref(false);
-const pesanPertemuan  = ref('');
-const editPertemuan   = ref(null);
-const formPertemuan   = reactive({ nomor: '', tanggal: hariIni() });
-const formUbahPertemuan = reactive({ tanggal: '' });
-const errPertemuan    = reactive({});
+const showModalPertemuan = ref(false);
+const modEditPertemuan = ref(false);
+const editPertemuanId = ref(null);
+const submittingPertemuan = ref(false);
+const formPertemuan = ref({ tanggal: '', nomor: '' });
+const errorsPertemuan = ref({});
+const showConfirmHapusPertemuan = ref(false);
+const pertemuanAkanDihapus = ref(null);
+const deletingPertemuan = ref(false);
 
-// Tab Mahasiswa
-const mahasiswaTerdaftar   = ref([]);
-const semuaMahasiswa      = ref([]);
-const pilihMahasiswaId     = ref('');
-const loadingMhs           = ref(false);
-const pesanMhs             = ref('');
+// Data Tab Mahasiswa
+const mahasiswaKelas = ref([]);
+const semuaMasterMahasiswa = ref([]);
+const loadingMahasiswa = ref(false);
+const mahasiswaDipilih = ref(null);
+const mendaftar = ref(false);
+const showConfirmKeluarkan = ref(false);
+const mahasiswaAkanDikeluarkan = ref(null);
+const removingMahasiswa = ref(false);
 
-// Tab Rekap
-const rekap        = reactive({ pertemuan_tercatat: 0, data: [] });
+// Data Tab Rekap
+const dataRekap = ref({ pertemuan_tercatat: 0, rekap: [] });
 const loadingRekap = ref(false);
 
-// Mahasiswa yang belum terdaftar = semua mahasiswa dikurangi yang sudah terdaftar
-const mahasiswaBelumDaftar = computed(() => {
-  const terdaftarIds = new Set(mahasiswaTerdaftar.value.map(m => m.id));
-  return semuaMahasiswa.value.filter(m => !terdaftarIds.has(m.id));
+// Hitungan statistik
+const jumlahPertemuanTercatat = computed(() => {
+  return daftarPertemuan.value.filter((p) => (p.kehadiran_count || 0) > 0).length;
 });
 
-// ──────────────────────────────────────────
-//  Inisialisasi
-// ──────────────────────────────────────────
-onMounted(async () => {
+const rataRataKehadiran = computed(() => {
+  const list = dataRekap.value.rekap || [];
+  if (!list.length) return '0.0';
+  const total = list.reduce((acc, curr) => acc + (Number(curr.persentase) || 0), 0);
+  return (total / list.length).toFixed(1);
+});
+
+const kandidatMahasiswa = computed(() => {
+  const idsTerdaftar = new Set(mahasiswaKelas.value.map((m) => m.id));
+  return semuaMasterMahasiswa.value.filter((m) => !idsTerdaftar.has(m.id));
+});
+
+const pesanHapusPertemuan = computed(() => {
+  if (!pertemuanAkanDihapus.value) return '';
+  return `Apakah Anda yakin ingin menghapus Pertemuan ke-${pertemuanAkanDihapus.value.nomor}? Seluruh data absensi pada pertemuan ini akan ikut terhapus.`;
+});
+
+const pesanKeluarkanMahasiswa = computed(() => {
+  if (!mahasiswaAkanDikeluarkan.value) return '';
+  return `Apakah Anda yakin ingin mengeluarkan ${mahasiswaAkanDikeluarkan.value.nama} dari kelas ini?`;
+});
+
+function formatTanggal(str) {
+  if (!str) return '-';
+  const bagian = str.split('-');
+  if (bagian.length !== 3) return str;
+  const d = new Date(Number(bagian[0]), Number(bagian[1]) - 1, Number(bagian[2]));
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
+function getTanggalHariIni() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function gantiTab(tabKey) {
+  tabAktif.value = tabKey;
+  router.replace({ query: { ...route.query, tab: tabKey } });
+  if (tabKey === 'pertemuan') muatPertemuan();
+  if (tabKey === 'mahasiswa') muatMahasiswaKelas();
+  if (tabKey === 'rekap') muatRekap();
+}
+
+async function muatKelas() {
+  loadingKelas.value = true;
+  errorKelas.value = '';
   try {
-    const resp = await api.get(`/api/kelas/${kelasId}`);
-    kelas.value = resp.data;
-  } catch {
-    kelas.value = null;
+    const res = await api.get(`/api/kelas/${kelasId}`);
+    kelas.value = res.data || res;
+  } catch (err) {
+    errorKelas.value = err.message || 'Kelas tidak ditemukan.';
   } finally {
     loadingKelas.value = false;
   }
-  await Promise.all([muatPertemuan(), muatMahasiswa(), muatSemuaMahasiswa()]);
-});
+}
 
-// ──────────────────────────────────────────
-//  Pertemuan
-// ──────────────────────────────────────────
 async function muatPertemuan() {
   loadingPertemuan.value = true;
   try {
-    const resp = await api.get(`/api/kelas/${kelasId}/pertemuan`);
-    pertemuan.value = resp.data ?? [];
-  } catch {
-    pesanPertemuan.value = 'Gagal memuat pertemuan.';
+    const res = await api.get(`/api/kelas/${kelasId}/pertemuan`);
+    daftarPertemuan.value = res.data || [];
+  } catch (err) {
+    toast.error('Gagal memuat pertemuan: ' + err.message);
   } finally {
     loadingPertemuan.value = false;
   }
 }
 
-async function simpanPertemuan() {
-  Object.keys(errPertemuan).forEach(k => delete errPertemuan[k]);
-  pesanPertemuan.value = '';
-  loadingPertemuan.value = true;
+async function muatMahasiswaKelas() {
+  loadingMahasiswa.value = true;
   try {
-    const body = { tanggal: formPertemuan.tanggal };
-    // Kirim nomor hanya bila diisi
-    if (formPertemuan.nomor !== '' && formPertemuan.nomor !== null) {
-      body.nomor = Number(formPertemuan.nomor);
-    }
-    await api.post(`/api/kelas/${kelasId}/pertemuan`, body);
-    formPertemuan.nomor  = '';
-    formPertemuan.tanggal = hariIni();
-    tampilPesan({ teks: 'Pertemuan berhasil ditambahkan.' });
-    await muatPertemuan();
-  } catch (e) {
-    if (e.errors) Object.assign(errPertemuan, e.errors);
-    else pesanPertemuan.value = e.message || 'Gagal menambah pertemuan.';
+    const [resKelas, resMaster] = await Promise.all([
+      api.get(`/api/kelas/${kelasId}/mahasiswa`),
+      api.get('/api/mahasiswa?per_page=1000'),
+    ]);
+    mahasiswaKelas.value = resKelas.data || [];
+    semuaMasterMahasiswa.value = resMaster.data || [];
+  } catch (err) {
+    toast.error('Gagal memuat mahasiswa: ' + err.message);
   } finally {
-    loadingPertemuan.value = false;
+    loadingMahasiswa.value = false;
   }
 }
 
-function mulaEditPertemuan(p) {
-  editPertemuan.value = p;
-  formUbahPertemuan.tanggal = p.tanggal;
-}
-
-async function perbaruiPertemuan() {
-  loadingPertemuan.value = true;
-  try {
-    await api.put(`/api/pertemuan/${editPertemuan.value.id}`, { tanggal: formUbahPertemuan.tanggal });
-    editPertemuan.value = null;
-    tampilPesan({ teks: 'Pertemuan berhasil diperbarui.' });
-    await muatPertemuan();
-  } catch (e) {
-    pesanPertemuan.value = e.message || 'Gagal memperbarui pertemuan.';
-  } finally {
-    loadingPertemuan.value = false;
-  }
-}
-
-async function hapusPertemuan(p) {
-  if (!window.confirm(`Hapus pertemuan ke-${p.nomor} (${formatTanggal(p.tanggal)})? Data kehadiran pertemuan ini juga akan terhapus.`)) return;
-  try {
-    await api.delete(`/api/pertemuan/${p.id}`);
-    tampilPesan({ teks: 'Pertemuan berhasil dihapus.' });
-    await muatPertemuan();
-  } catch (e) {
-    pesanPertemuan.value = e.message || 'Gagal menghapus pertemuan.';
-  }
-}
-
-// ──────────────────────────────────────────
-//  Mahasiswa
-// ──────────────────────────────────────────
-async function muatMahasiswa() {
-  loadingMhs.value = true;
-  pesanMhs.value = '';
-  try {
-    const resp = await api.get(`/api/kelas/${kelasId}/mahasiswa`);
-    mahasiswaTerdaftar.value = resp.data ?? [];
-  } catch {
-    pesanMhs.value = 'Gagal memuat mahasiswa.';
-  } finally {
-    loadingMhs.value = false;
-  }
-}
-
-async function muatSemuaMahasiswa() {
-  try {
-    const resp = await api.get('/api/mahasiswa?per_page=200');
-    semuaMahasiswa.value = resp.data ?? [];
-  } catch { /* abaikan */ }
-}
-
-async function daftarkan() {
-  if (!pilihMahasiswaId.value) return;
-  pesanMhs.value = '';
-  loadingMhs.value = true;
-  try {
-    await api.post(`/api/kelas/${kelasId}/mahasiswa`, { mahasiswa_id: pilihMahasiswaId.value });
-    pilihMahasiswaId.value = '';
-    tampilPesan({ teks: 'Mahasiswa berhasil didaftarkan.' });
-    await muatMahasiswa();
-  } catch (e) {
-    pesanMhs.value = e.message || 'Gagal mendaftarkan mahasiswa.';
-  } finally {
-    loadingMhs.value = false;
-  }
-}
-
-async function keluarkan(m) {
-  if (!window.confirm(`Keluarkan ${m.nama} dari kelas ini?`)) return;
-  pesanMhs.value = '';
-  try {
-    await api.delete(`/api/kelas/${kelasId}/mahasiswa/${m.id}`);
-    tampilPesan({ teks: `${m.nama} berhasil dikeluarkan dari kelas.` });
-    await muatMahasiswa();
-  } catch (e) {
-    pesanMhs.value = e.message || 'Gagal mengeluarkan mahasiswa.';
-  }
-}
-
-// ──────────────────────────────────────────
-//  Rekap
-// ──────────────────────────────────────────
 async function muatRekap() {
   loadingRekap.value = true;
   try {
-    const resp = await api.get(`/api/kelas/${kelasId}/rekap`);
-    rekap.pertemuan_tercatat = resp.data?.pertemuan_tercatat ?? 0;
-    rekap.data = resp.data?.rekap ?? [];
-  } catch {
-    rekap.data = [];
+    const res = await api.get(`/api/kelas/${kelasId}/rekap`);
+    dataRekap.value = res.data || res;
+  } catch (err) {
+    toast.error('Gagal memuat rekap: ' + err.message);
   } finally {
     loadingRekap.value = false;
   }
 }
 
-// ──────────────────────────────────────────
-//  Helpers
-// ──────────────────────────────────────────
-function hariIni() {
-  return new Date().toISOString().slice(0, 10);
+// Handler Pertemuan
+function bukaModalTambahPertemuan() {
+  modEditPertemuan.value = false;
+  editPertemuanId.value = null;
+  formPertemuan.value = { tanggal: getTanggalHariIni(), nomor: '' };
+  errorsPertemuan.value = {};
+  showModalPertemuan.value = true;
 }
 
-function formatTanggal(iso) {
-  if (!iso) return '-';
-  const [y, m, d] = iso.split('-');
-  return `${d}-${m}-${y}`;
+function bukaModalEditPertemuan(p) {
+  modEditPertemuan.value = true;
+  editPertemuanId.value = p.id;
+  formPertemuan.value = { tanggal: p.tanggal, nomor: p.nomor };
+  errorsPertemuan.value = {};
+  showModalPertemuan.value = true;
 }
+
+async function simpanPertemuan() {
+  submittingPertemuan.value = true;
+  errorsPertemuan.value = {};
+
+  const payload = { tanggal: formPertemuan.value.tanggal };
+  if (formPertemuan.value.nomor) {
+    payload.nomor = Number(formPertemuan.value.nomor);
+  }
+
+  try {
+    if (modEditPertemuan.value) {
+      await api.put(`/api/pertemuan/${editPertemuanId.value}`, payload);
+      toast.success('Pertemuan berhasil diperbarui.');
+    } else {
+      await api.post(`/api/kelas/${kelasId}/pertemuan`, payload);
+      toast.success('Pertemuan berhasil dibuat.');
+    }
+    showModalPertemuan.value = false;
+    await muatPertemuan();
+    muatRekap();
+  } catch (err) {
+    if (err.errors) {
+      errorsPertemuan.value = err.errors;
+    }
+    toast.error(err.message || 'Gagal menyimpan pertemuan.');
+  } finally {
+    submittingPertemuan.value = false;
+  }
+}
+
+function konfirmasiHapusPertemuan(p) {
+  pertemuanAkanDihapus.value = p;
+  showConfirmHapusPertemuan.value = true;
+}
+
+async function eksekusiHapusPertemuan() {
+  if (!pertemuanAkanDihapus.value) return;
+
+  deletingPertemuan.value = true;
+  try {
+    await api.delete(`/api/pertemuan/${pertemuanAkanDihapus.value.id}`);
+    toast.success('Pertemuan berhasil dihapus.');
+    showConfirmHapusPertemuan.value = false;
+    pertemuanAkanDihapus.value = null;
+    await muatPertemuan();
+    muatRekap();
+  } catch (err) {
+    toast.error(err.message || 'Gagal menghapus pertemuan.');
+    showConfirmHapusPertemuan.value = false;
+  } finally {
+    deletingPertemuan.value = false;
+  }
+}
+
+// Handler Pendaftaran Mahasiswa
+async function daftarkanMahasiswa() {
+  if (!mahasiswaDipilih.value) return;
+
+  mendaftar.value = true;
+  try {
+    await api.post(`/api/kelas/${kelasId}/mahasiswa`, {
+      mahasiswa_id: mahasiswaDipilih.value,
+    });
+    toast.success('Mahasiswa berhasil didaftarkan ke kelas.');
+    mahasiswaDipilih.value = null;
+    await muatMahasiswaKelas();
+    muatRekap();
+  } catch (err) {
+    toast.error(err.message || 'Gagal mendaftarkan mahasiswa.');
+  } finally {
+    mendaftar.value = false;
+  }
+}
+
+function konfirmasiKeluarkanMahasiswa(mhs) {
+  mahasiswaAkanDikeluarkan.value = mhs;
+  showConfirmKeluarkan.value = true;
+}
+
+async function eksekusiKeluarkanMahasiswa() {
+  if (!mahasiswaAkanDikeluarkan.value) return;
+
+  removingMahasiswa.value = true;
+  try {
+    await api.delete(`/api/kelas/${kelasId}/mahasiswa/${mahasiswaAkanDikeluarkan.value.id}`);
+    toast.success('Mahasiswa berhasil dikeluarkan dari kelas.');
+    showConfirmKeluarkan.value = false;
+    mahasiswaAkanDikeluarkan.value = null;
+    await muatMahasiswaKelas();
+    muatRekap();
+  } catch (err) {
+    toast.error(err.message || 'Gagal mengeluarkan mahasiswa.');
+    showConfirmKeluarkan.value = false;
+  } finally {
+    removingMahasiswa.value = false;
+  }
+}
+
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && ['pertemuan', 'mahasiswa', 'rekap'].includes(newTab)) {
+      tabAktif.value = newTab;
+    }
+  }
+);
+
+onMounted(async () => {
+  await muatKelas();
+  muatPertemuan();
+  muatMahasiswaKelas();
+  muatRekap();
+});
 </script>
