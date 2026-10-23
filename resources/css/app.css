@@ -1,4 +1,245 @@
-body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    margin: 0;
+/* ===========================
+   CSS Variables
+   =========================== */
+:root {
+  --warna-aksen: #1a4a7c;       /* biru tua kalem */
+  --warna-aksen-hover: #153d68;
+  --warna-teks: #1a1a1a;
+  --warna-teks-muted: #555;
+  --warna-hapus: #8b1a1a;       /* merah tua */
+  --warna-border: #ccc;
+  --warna-bg-header-tabel: #f0f0f0;
+  --warna-bg-input: #fff;
+  --warna-bg-pesan-error: #fff4f4;
+  --warna-pesan-sukses: #1a5c1a;
+  --warna-bg: #fff;
+  --lebar-konten: 960px;
 }
+
+/* ===========================
+   Reset & Base
+   =========================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--warna-teks);
+  background: var(--warna-bg);
+  line-height: 1.5;
+}
+
+/* ===========================
+   Header Navigasi
+   =========================== */
+.header {
+  border-bottom: 1px solid var(--warna-border);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 48px;
+}
+
+.header__nama-app {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--warna-teks);
+  text-decoration: none;
+}
+
+.header__nav { display: flex; gap: 16px; }
+
+.header__nav a {
+  font-size: 14px;
+  color: var(--warna-teks);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.header__nav a.aktif {
+  border-bottom-color: var(--warna-aksen);
+  color: var(--warna-aksen);
+  font-weight: 500;
+}
+
+.header__nav a:hover { color: var(--warna-aksen); }
+
+/* ===========================
+   Konten Utama
+   =========================== */
+.konten {
+  max-width: var(--lebar-konten);
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+/* ===========================
+   Pesan Global
+   =========================== */
+.pesan-global {
+  max-width: var(--lebar-konten);
+  margin: 12px auto 0;
+  padding: 0 20px;
+  font-size: 13px;
+}
+
+.pesan-global--sukses { color: var(--warna-pesan-sukses); }
+.pesan-global--gagal  { color: var(--warna-hapus); }
+
+/* ===========================
+   Heading Halaman
+   =========================== */
+.hal-header { margin-bottom: 16px; }
+.hal-header h1 { font-size: 18px; font-weight: 600; }
+.hal-header p  { font-size: 13px; color: var(--warna-teks-muted); margin-top: 2px; }
+.hal-header a  { font-size: 13px; color: var(--warna-aksen); text-decoration: none; }
+.hal-header a:hover { text-decoration: underline; }
+
+/* ===========================
+   Form
+   =========================== */
+.form { margin-bottom: 24px; }
+.form h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+
+.form__baris { margin-bottom: 10px; }
+
+.form__baris label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.form__baris input,
+.form__baris select {
+  width: 100%;
+  max-width: 400px;
+  padding: 5px 8px;
+  border: 1px solid var(--warna-border);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--warna-teks);
+  background: var(--warna-bg-input);
+}
+
+.form__baris input:focus,
+.form__baris select:focus {
+  outline: 2px solid var(--warna-aksen);
+  outline-offset: 1px;
+}
+
+.form__petunjuk { font-size: 12px; color: var(--warna-teks-muted); margin-top: 2px; }
+
+.form__error { font-size: 12px; color: var(--warna-hapus); margin-top: 3px; }
+
+.form__aksi { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+
+/* ===========================
+   Tombol
+   =========================== */
+.btn {
+  padding: 5px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--warna-border);
+  background: var(--warna-bg);
+  color: var(--warna-teks);
+}
+
+.btn:hover { background: #f5f5f5; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--utama {
+  background: var(--warna-aksen);
+  color: #fff;
+  border-color: var(--warna-aksen);
+}
+
+.btn--utama:hover { background: var(--warna-aksen-hover); border-color: var(--warna-aksen-hover); }
+
+.btn--hapus {
+  background: none;
+  border: none;
+  color: var(--warna-hapus);
+  padding: 5px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn--hapus:hover { text-decoration: underline; }
+
+/* ===========================
+   Tabel
+   =========================== */
+.tabel-pembungkus { overflow-x: auto; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+th {
+  background: var(--warna-bg-header-tabel);
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid var(--warna-border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+td {
+  padding: 6px 10px;
+  border: 1px solid var(--warna-border);
+  vertical-align: middle;
+}
+
+tr:hover td { background: #fafafa; }
+
+td .aksi { display: flex; gap: 6px; align-items: center; }
+
+/* ===========================
+   Teks Bantu
+   =========================== */
+.teks-muted { color: var(--warna-teks-muted); font-size: 13px; }
+.teks-rendah { color: var(--warna-hapus); font-weight: 700; }
+.teks-keterangan { font-size: 12px; color: var(--warna-teks-muted); margin-top: 6px; }
+
+/* ===========================
+   Tab Bagian
+   =========================== */
+.tab-nav { display: flex; gap: 0; border-bottom: 1px solid var(--warna-border); margin-bottom: 20px; }
+
+.tab-nav button {
+  padding: 7px 18px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--warna-teks-muted);
+  margin-bottom: -1px;
+}
+
+.tab-nav button.aktif {
+  border-bottom-color: var(--warna-aksen);
+  color: var(--warna-aksen);
+  font-weight: 500;
+}
+
+.tab-nav button:hover:not(.aktif) { color: var(--warna-teks); }
+
+/* ===========================
+   Ringkasan Kehadiran (Input Kehadiran)
+   =========================== */
+.ringkasan { font-size: 13px; margin-bottom: 10px; color: var(--warna-teks-muted); }
+
+/* ===========================
+   Radio Kehadiran
+   =========================== */
+.radio-grup { display: flex; gap: 16px; }
+.radio-grup label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
