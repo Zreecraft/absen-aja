@@ -1,203 +1,366 @@
 <template>
-  <div v-if="loading" class="teks-muted">Memuat data kehadiran...</div>
-  <template v-else>
-    <!-- Header halaman -->
-    <div class="hal-header">
-      <h1>Pertemuan ke-{{ pertemuan.nomor }} &mdash; {{ formatTanggal(pertemuan.tanggal) }}</h1>
-      <p>{{ kelas.mata_kuliah }} {{ kelas.nama_kelas }} &mdash; {{ kelas.dosen }}</p>
-      <router-link :to="'/kelas/' + route.params.id">Kembali ke detail kelas</router-link>
-    </div>
+  <div>
+    <!-- State Loading Awal -->
+    <LoadingState v-if="loading" text="Memuat lembar presensi pertemuan..." />
 
-    <!-- Bila belum ada mahasiswa terdaftar -->
-    <div v-if="!baris.length">
-      <p class="teks-muted">Belum ada mahasiswa di kelas ini.</p>
-      <router-link :to="'/kelas/' + route.params.id" class="btn" style="display:inline-block;margin-top:10px;">
-        Ke halaman kelas untuk mendaftarkan mahasiswa
+    <!-- State Error Loading -->
+    <div
+      v-else-if="errorLoad"
+      class="p-6 rounded-xl border border-rose-200 bg-rose-50 text-center text-rose-800"
+    >
+      <p class="font-medium text-sm mb-3">{{ errorLoad }}</p>
+      <router-link
+        :to="`/kelas/${kelasId}?tab=pertemuan`"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-white border border-rose-300 rounded-md hover:bg-rose-100"
+      >
+        <ArrowLeft class="w-3.5 h-3.5" />
+        <span>Kembali ke Detail Kelas</span>
       </router-link>
     </div>
 
-    <template v-else>
-      <!-- Ringkasan hitung langsung -->
-      <p class="ringkasan">
-        Hadir {{ hitung.hadir }},
-        Izin {{ hitung.izin }},
-        Sakit {{ hitung.sakit }},
-        Alpa {{ hitung.alpa }}
-      </p>
-
-      <!-- Tombol aksi global -->
-      <div class="form__aksi" style="margin-bottom:12px">
-        <button class="btn" @click="semuaHadir">Semua hadir</button>
-        <button class="btn btn--utama" :disabled="menyimpan" @click="simpan">
-          {{ menyimpan ? 'Menyimpan...' : 'Simpan' }}
-        </button>
+    <!-- Konten Utama Input Kehadiran -->
+    <div v-else-if="pertemuan" class="space-y-6 pb-20">
+      <!-- Breadcrumb / Tombol Kembali -->
+      <div>
+        <router-link
+          :to="`/kelas/${kelasId}?tab=pertemuan`"
+          class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-600 transition-colors"
+        >
+          <ArrowLeft class="w-4 h-4" />
+          <span>Kembali ke Detail Kelas</span>
+        </router-link>
       </div>
 
-      <!-- Pesan sukses / error -->
-      <div v-if="pesanSimpan" :class="pesanSimpan.tipe === 'sukses' ? 'pesan-global pesan-global--sukses' : 'pesan-global pesan-global--gagal'"
-           style="padding:0;margin-bottom:12px;">
-        {{ pesanSimpan.teks }}
-      </div>
+      <!-- Header Halaman -->
+      <PageHeader
+        :title="`Pertemuan ke-${pertemuan.nomor}`"
+        :description="`Tanggal: ${formatTanggal(pertemuan.tanggal)}`"
+      >
+        <template #badge>
+          <span v-if="kelas" class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+            {{ kelas.mata_kuliah }} ({{ kelas.nama_kelas }})
+          </span>
+        </template>
+      </PageHeader>
 
-      <!-- Tabel input kehadiran -->
-      <div class="tabel-pembungkus">
-        <table>
-          <thead>
-            <tr>
-              <th>NIM</th>
-              <th>Nama</th>
-              <th>Hadir</th>
-              <th>Izin</th>
-              <th>Sakit</th>
-              <th>Alpa</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(b, idx) in baris" :key="b.mahasiswa_id">
-              <td>{{ b.nim }}</td>
-              <td>{{ b.nama }}</td>
-              <!-- Empat radio per baris; name unik per mahasiswa agar keyboard bisa dipakai -->
-              <td>
-                <label>
-                  <input type="radio" :name="'status-' + b.mahasiswa_id" value="hadir" v-model="b.status" />
-                </label>
-              </td>
-              <td>
-                <label>
-                  <input type="radio" :name="'status-' + b.mahasiswa_id" value="izin" v-model="b.status" />
-                </label>
-              </td>
-              <td>
-                <label>
-                  <input type="radio" :name="'status-' + b.mahasiswa_id" value="sakit" v-model="b.status" />
-                </label>
-              </td>
-              <td>
-                <label>
-                  <input type="radio" :name="'status-' + b.mahasiswa_id" value="alpa" v-model="b.status" />
-                </label>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Empty State Jika Kelas Belum Punya Mahasiswa -->
+      <EmptyState
+        v-if="daftarKehadiran.length === 0"
+        title="Belum ada mahasiswa di kelas ini"
+        description="Daftarkan mahasiswa ke dalam kelas terlebih dahulu agar dapat mencatat kehadiran pada pertemuan ini."
+        action-text="Kelola Mahasiswa Kelas"
+        :icon="Users"
+        @action="$router.push(`/kelas/${kelasId}?tab=mahasiswa`)"
+      />
+
+      <!-- Daftar Presensi Mahasiswa -->
+      <div v-else class="space-y-4">
+        <!-- Kotak Pencarian Cepat Mahasiswa -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="relative max-w-sm w-full">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <Search class="w-4 h-4" />
+            </div>
+            <input
+              v-model="kataKunci"
+              type="text"
+              placeholder="Cari mahasiswa di pertemuan ini..."
+              class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+            />
+          </div>
+
+          <!-- Status Indikator Perubahan -->
+          <div class="text-xs">
+            <span
+              v-if="adaPerubahan"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-medium"
+            >
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>Ada perubahan belum disimpan</span>
+            </span>
+            <span v-else class="text-slate-400">
+              Semua data tersimpan rapi
+            </span>
+          </div>
+        </div>
+
+        <!-- Tabel Presensi -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+              <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <tr>
+                  <th scope="col" class="py-3.5 px-4 w-36">NIM</th>
+                  <th scope="col" class="py-3.5 px-4">Nama Mahasiswa</th>
+                  <th scope="col" class="py-3.5 px-4 w-80 text-right">Status Kehadiran</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr
+                  v-for="row in daftarTampil"
+                  :key="row.mahasiswa_id"
+                  class="hover:bg-slate-50/75 transition-colors"
+                >
+                  <td class="py-3 px-4 font-mono font-medium text-slate-900 tabular-nums">
+                    {{ row.nim }}
+                  </td>
+                  <td class="py-3 px-4 font-medium text-slate-800">
+                    {{ row.nama }}
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <!-- Segmented Radio Button Group -->
+                    <div
+                      class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50/80"
+                      role="radiogroup"
+                      :aria-label="`Pilihan kehadiran ${row.nama}`"
+                    >
+                      <label
+                        v-for="stKey in STATUS_LIST"
+                        :key="stKey"
+                        :class="[
+                          'px-3 py-1.5 text-xs font-semibold rounded-md cursor-pointer transition-all flex items-center gap-1.5 select-none',
+                          row.status === stKey
+                            ? getStatus(stKey).buttonActiveClass
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        ]"
+                      >
+                        <input
+                          type="radio"
+                          :name="`kehadiran-${row.mahasiswa_id}`"
+                          :value="stKey"
+                          v-model="row.status"
+                          class="sr-only"
+                        />
+                        <span>{{ getStatus(stKey).label }}</span>
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="daftarTampil.length === 0">
+                  <td colspan="3" class="py-8 text-center text-slate-500 text-sm">
+                    Tidak ada mahasiswa yang cocok dengan pencarian "{{ kataKunci }}".
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sticky Summary & Action Bar -->
+        <div class="sticky bottom-4 z-20 bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl p-3.5 shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <!-- Ringkasan Counter Langsung -->
+          <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-xs font-medium">
+            <span class="text-slate-500 mr-1">Total {{ daftarKehadiran.length }} mhs:</span>
+
+            <span
+              v-for="stKey in STATUS_LIST"
+              :key="stKey"
+              :class="[
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border',
+                getStatus(stKey).countBadgeClass
+              ]"
+            >
+              <span :class="['w-1.5 h-1.5 rounded-full', getStatus(stKey).dotClass]"></span>
+              <span>{{ getStatus(stKey).label }}: <strong class="tabular-nums">{{ hitungan[stKey] || 0 }}</strong></span>
+            </span>
+          </div>
+
+          <!-- Tombol Aksi -->
+          <div class="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+            <button
+              type="button"
+              :disabled="saving"
+              @click="setSemuaHadir"
+              class="px-3.5 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 transition-colors"
+            >
+              Set Semua Hadir
+            </button>
+
+            <button
+              type="button"
+              :disabled="saving"
+              @click="simpanKehadiran"
+              class="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50 transition-colors"
+            >
+              <Loader2 v-if="saving" class="w-4 h-4 animate-spin" />
+              <Check v-else class="w-4 h-4" />
+              <span>{{ saving ? 'Menyimpan...' : 'Simpan Presensi' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
-    </template>
-  </template>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, inject, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, onBeforeRouteLeave } from 'vue-router';
 import { api } from '../api.js';
+import { useToast } from '../useToast.js';
+import { STATUS_LIST, getStatus } from '../status.js';
+import PageHeader from '../components/PageHeader.vue';
+import LoadingState from '../components/LoadingState.vue';
+import EmptyState from '../components/EmptyState.vue';
+import { ArrowLeft, Search, Check, Users, Loader2 } from 'lucide-vue-next';
 
 const route = useRoute();
-const kelasId      = route.params.id;
-const pertemuanId  = route.params.pid;
-const tampilPesan  = inject('tampilPesan');
+const toast = useToast();
 
-const loading     = ref(true);
-const menyimpan   = ref(false);
-const pesanSimpan = ref(null);
+const kelasId = route.params.id;
+const pid = route.params.pid;
 
-// Data dari API
-const pertemuan = reactive({ id: null, nomor: null, tanggal: null, kelas_id: null });
-const kelas     = reactive({ mata_kuliah: '', nama_kelas: '', dosen: '' });
-const baris     = ref([]); // [{ mahasiswa_id, nim, nama, status }]
+const kelas = ref(null);
+const pertemuan = ref(null);
+const daftarKehadiran = ref([]);
+const snapshotAwal = ref('');
+const loading = ref(true);
+const errorLoad = ref('');
+const saving = ref(false);
+const kataKunci = ref('');
 
-// Snapshot untuk deteksi perubahan belum disimpan
-let statusAwal = '';
-
-// Ringkasan hitung langsung (computed dari baris yang bisa berubah)
-const hitung = computed(() => {
-  const h = { hadir: 0, izin: 0, sakit: 0, alpa: 0 };
-  baris.value.forEach(b => { if (b.status && h[b.status] !== undefined) h[b.status]++; });
-  return h;
+const daftarTampil = computed(() => {
+  const q = kataKunci.value.trim().toLowerCase();
+  if (!q) return daftarKehadiran.value;
+  return daftarKehadiran.value.filter(
+    (row) => row.nim.toLowerCase().includes(q) || row.nama.toLowerCase().includes(q)
+  );
 });
 
-// Muat data dari GET /api/pertemuan/{pid}/kehadiran
-async function muat() {
+// Hitung rekap langsung dari pilihan di layar
+const hitungan = computed(() => {
+  const hasil = { hadir: 0, izin: 0, sakit: 0, alpa: 0 };
+  for (const row of daftarKehadiran.value) {
+    if (hasil[row.status] !== undefined) {
+      hasil[row.status]++;
+    }
+  }
+  return hasil;
+});
+
+// Mengecek apakah ada perubahan data dibanding saat pertama dimuat / disimpan
+const adaPerubahan = computed(() => {
+  if (!snapshotAwal.value) return false;
+  const currentSnapshot = JSON.stringify(
+    daftarKehadiran.value.map((r) => ({ id: r.mahasiswa_id, s: r.status }))
+  );
+  return currentSnapshot !== snapshotAwal.value;
+});
+
+function formatTanggal(str) {
+  if (!str) return '-';
+  const bagian = str.split('-');
+  if (bagian.length !== 3) return str;
+  const d = new Date(Number(bagian[0]), Number(bagian[1]) - 1, Number(bagian[2]));
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
+function setSemuaHadir() {
+  for (const row of daftarKehadiran.value) {
+    row.status = 'hadir';
+  }
+}
+
+async function muatData() {
   loading.value = true;
-  pesanSimpan.value = null;
+  errorLoad.value = '';
   try {
-    // Ambil data kehadiran
-    const respAbsen = await api.get(`/api/pertemuan/${pertemuanId}/kehadiran`);
-    const dataAbsen = respAbsen.data;
+    const [resKehadiran, resKelas] = await Promise.all([
+      api.get(`/api/pertemuan/${pid}/kehadiran`),
+      api.get(`/api/kelas/${kelasId}`),
+    ]);
 
-    // Isi pertemuan dari respons
-    Object.assign(pertemuan, dataAbsen.pertemuan);
+    const data = resKehadiran.data || resKehadiran;
+    pertemuan.value = data.pertemuan;
+    kelas.value = resKelas.data || resKelas;
 
-    // Isi baris; status null -> default 'hadir' di layar (belum tersimpan)
-    baris.value = dataAbsen.kehadiran.map(k => ({
-      mahasiswa_id: k.mahasiswa_id,
-      nim: k.nim,
-      nama: k.nama,
-      status: k.status ?? 'hadir',
+    // Mahasiswa yang statusnya null default ke 'hadir' di layar
+    daftarKehadiran.value = (data.kehadiran || []).map((item) => ({
+      mahasiswa_id: item.mahasiswa_id,
+      nim: item.nim,
+      nama: item.nama,
+      status: item.status || 'hadir',
     }));
 
-    // Ambil data kelas untuk header
-    const respKelas = await api.get(`/api/kelas/${kelasId}`);
-    Object.assign(kelas, respKelas.data);
-
-    // Catat status awal untuk deteksi perubahan
-    statusAwal = JSON.stringify(baris.value.map(b => ({ id: b.mahasiswa_id, s: b.status })));
-  } catch (e) {
-    pesanSimpan.value = { tipe: 'gagal', teks: e.message || 'Gagal memuat data.' };
+    snapshotAwal.value = JSON.stringify(
+      daftarKehadiran.value.map((r) => ({ id: r.mahasiswa_id, s: r.status }))
+    );
+  } catch (err) {
+    errorLoad.value = err.message || 'Gagal memuat data presensi.';
   } finally {
     loading.value = false;
   }
 }
 
-function semuaHadir() {
-  baris.value.forEach(b => { b.status = 'hadir'; });
-}
+async function simpanKehadiran() {
+  saving.value = true;
 
-async function simpan() {
-  menyimpan.value = true;
-  pesanSimpan.value = null;
+  // Body request: seluruh mahasiswa di kelas
+  const payload = {
+    kehadiran: daftarKehadiran.value.map((item) => ({
+      mahasiswa_id: item.mahasiswa_id,
+      status: item.status,
+    })),
+  };
+
   try {
-    const payload = {
-      kehadiran: baris.value.map(b => ({
-        mahasiswa_id: b.mahasiswa_id,
-        status: b.status,
-      })),
-    };
-    const resp = await api.put(`/api/pertemuan/${pertemuanId}/kehadiran`, payload);
+    const res = await api.put(`/api/pertemuan/${pid}/kehadiran`, payload);
+    toast.success('Kehadiran berhasil disimpan.');
 
-    // Perbarui baris dari respons supaya statusAwal ikut diperbarui
-    const diperbarui = resp.data?.kehadiran ?? [];
-    const peta = {};
-    diperbarui.forEach(k => { peta[k.mahasiswa_id] = k.status; });
-    baris.value.forEach(b => { if (peta[b.mahasiswa_id]) b.status = peta[b.mahasiswa_id]; });
+    // Perbarui data dari respons server
+    const data = res.data || res;
+    if (data.kehadiran) {
+      daftarKehadiran.value = data.kehadiran.map((item) => ({
+        mahasiswa_id: item.mahasiswa_id,
+        nim: item.nim,
+        nama: item.nama,
+        status: item.status || 'hadir',
+      }));
+    }
 
-    // Perbarui snapshot
-    statusAwal = JSON.stringify(baris.value.map(b => ({ id: b.mahasiswa_id, s: b.status })));
-
-    pesanSimpan.value = { tipe: 'sukses', teks: 'Kehadiran tersimpan.' };
-  } catch (e) {
-    // Data di layar tidak dihapus; tampilkan pesan error
-    pesanSimpan.value = { tipe: 'gagal', teks: e.message || 'Gagal menyimpan kehadiran.' };
+    snapshotAwal.value = JSON.stringify(
+      daftarKehadiran.value.map((r) => ({ id: r.mahasiswa_id, s: r.status }))
+    );
+  } catch (err) {
+    toast.error(err.message || 'Gagal menyimpan presensi kehadiran.');
   } finally {
-    menyimpan.value = false;
+    saving.value = false;
   }
 }
 
-// Peringatan bila ada perubahan belum disimpan
-function adaPerubahan() {
-  const statusSekarang = JSON.stringify(baris.value.map(b => ({ id: b.mahasiswa_id, s: b.status })));
-  return statusSekarang !== statusAwal;
-}
-
-onBeforeRouteLeave(() => {
-  if (adaPerubahan()) {
-    return window.confirm('Ada perubahan yang belum disimpan. Yakin ingin meninggalkan halaman ini?');
+// Peringatan sebelum meninggalkan halaman bila ada perubahan belum disimpan
+onBeforeRouteLeave((to, from, next) => {
+  if (adaPerubahan.value) {
+    const konfirmasi = window.confirm(
+      'Ada perubahan kehadiran yang belum disimpan. Yakin ingin meninggalkan halaman ini?'
+    );
+    if (!konfirmasi) {
+      next(false);
+      return;
+    }
   }
+  next();
 });
 
-function formatTanggal(iso) {
-  if (!iso) return '-';
-  const [y, m, d] = iso.split('-');
-  return `${d}-${m}-${y}`;
+function handleBeforeUnload(e) {
+  if (adaPerubahan.value) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
 }
 
-onMounted(muat);
+onMounted(() => {
+  muatData();
+  window.addEventListener('beforeunload', handleBeforeUnload);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+});
 </script>
