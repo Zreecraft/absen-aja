@@ -91,8 +91,8 @@
       </div>
 
       <!-- Navigasi Tab -->
-      <div class="border-b border-slate-200 mb-6">
-        <nav class="flex gap-2" aria-label="Tab Informasi Kelas">
+      <div class="border-b border-slate-200 mb-6 overflow-x-auto">
+        <nav class="flex gap-2 min-w-max pb-px" aria-label="Tab Informasi Kelas">
           <button
             type="button"
             @click="gantiTab('pertemuan')"
