@@ -55,22 +55,35 @@
 
       <!-- Daftar Presensi Mahasiswa -->
       <div v-else class="space-y-4">
-        <!-- Kotak Pencarian Cepat Mahasiswa -->
+        <!-- Toolbar Atas: Pencarian, Centang Semua Hadir & Status Indikator -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="relative max-w-sm w-full">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Search class="w-4 h-4" />
+          <div class="flex items-center gap-3 flex-1 flex-wrap">
+            <div class="relative max-w-xs w-full">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search class="w-4 h-4" />
+              </div>
+              <input
+                v-model="kataKunci"
+                type="text"
+                placeholder="Cari mahasiswa di pertemuan ini..."
+                class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+              />
             </div>
-            <input
-              v-model="kataKunci"
-              type="text"
-              placeholder="Cari mahasiswa di pertemuan ini..."
-              class="block w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
-            />
+
+            <!-- Kotak Centang Cepat Semua Hadir -->
+            <label class="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors select-none shadow-xs">
+              <input
+                type="checkbox"
+                :checked="isSemuaHadir"
+                @change="toggleSemuaHadir"
+                class="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span>Centang Semua Hadir</span>
+            </label>
           </div>
 
           <!-- Status Indikator Perubahan -->
-          <div class="text-xs">
+          <div class="text-xs shrink-0">
             <span
               v-if="adaPerubahan"
               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-medium"
@@ -88,12 +101,80 @@
           </div>
         </div>
 
+        <!-- Bar Aksi Massal Saat Ada Baris Dicentang -->
+        <div
+          v-if="terpilihIds.length > 0"
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-brand-50/80 border border-brand-200 rounded-xl text-xs"
+        >
+          <div class="flex items-center gap-2 text-brand-900 font-medium">
+            <CheckSquare class="w-4 h-4 text-brand-600 shrink-0" />
+            <span><strong>{{ terpilihIds.length }}</strong> mahasiswa dicentang</span>
+            <button
+              type="button"
+              @click="terpilihIds = []"
+              class="text-xs text-brand-600 hover:text-brand-800 underline ml-2 cursor-pointer"
+            >
+              Batal pilih
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-slate-500">Tandai terpilih:</span>
+            <button
+              type="button"
+              @click="setTerpilihStatus('hadir')"
+              class="px-2.5 py-1.5 rounded-md font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition-colors"
+            >
+              Hadir
+            </button>
+            <button
+              type="button"
+              @click="setTerpilihStatus('izin')"
+              class="px-2.5 py-1.5 rounded-md font-semibold text-sky-700 bg-sky-100 hover:bg-sky-200 border border-sky-300 transition-colors"
+            >
+              Izin
+            </button>
+            <button
+              type="button"
+              @click="setTerpilihStatus('sakit')"
+              class="px-2.5 py-1.5 rounded-md font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors"
+            >
+              Sakit
+            </button>
+            <button
+              type="button"
+              @click="setTerpilihStatus('alpa')"
+              class="px-2.5 py-1.5 rounded-md font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors"
+            >
+              Alpa
+            </button>
+            <button
+              type="button"
+              :disabled="saving"
+              @click="simpanKehadiran"
+              class="ml-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-md shadow-xs transition-colors disabled:opacity-50"
+            >
+              <Check class="w-3.5 h-3.5" />
+              <span>Submit Sekaligus</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Tabel Presensi -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm text-slate-700">
               <thead class="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-600">
                 <tr>
+                  <th scope="col" class="py-3.5 px-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      :checked="isSemuaDicentang"
+                      @change="toggleCentangSemua"
+                      title="Centang semua mahasiswa"
+                      class="w-4 h-4 rounded text-brand-600 border-slate-300 focus:ring-brand-500 cursor-pointer"
+                    />
+                  </th>
                   <th scope="col" class="py-3.5 px-4 w-36">NIM</th>
                   <th scope="col" class="py-3.5 px-4">Nama Mahasiswa</th>
                   <th scope="col" class="py-3.5 px-4 w-80 text-right">Status Kehadiran</th>
@@ -103,8 +184,19 @@
                 <tr
                   v-for="row in daftarTampil"
                   :key="row.mahasiswa_id"
-                  class="hover:bg-slate-50/75 transition-colors"
+                  :class="[
+                    'transition-colors',
+                    terpilihIds.includes(row.mahasiswa_id) ? 'bg-brand-50/40' : 'hover:bg-slate-50/75'
+                  ]"
                 >
+                  <td class="py-3 px-4 text-center">
+                    <input
+                      type="checkbox"
+                      :value="row.mahasiswa_id"
+                      v-model="terpilihIds"
+                      class="w-4 h-4 rounded text-brand-600 border-slate-300 focus:ring-brand-500 cursor-pointer"
+                    />
+                  </td>
                   <td class="py-3 px-4 font-mono font-medium text-slate-900 tabular-nums">
                     {{ row.nim }}
                   </td>
@@ -142,7 +234,7 @@
                 </tr>
 
                 <tr v-if="daftarTampil.length === 0">
-                  <td colspan="3" class="py-8 text-center text-slate-500 text-sm">
+                  <td colspan="4" class="py-8 text-center text-slate-500 text-sm">
                     Tidak ada mahasiswa yang cocok dengan pencarian "{{ kataKunci }}".
                   </td>
                 </tr>
@@ -212,7 +304,7 @@ import { STATUS_LIST, getStatus } from '../status.js';
 import PageHeader from '../components/PageHeader.vue';
 import LoadingState from '../components/LoadingState.vue';
 import EmptyState from '../components/EmptyState.vue';
-import { ArrowLeft, Search, Check, Users, Loader2 } from 'lucide-vue-next';
+import { ArrowLeft, Search, Check, CheckSquare, Users, Loader2 } from 'lucide-vue-next';
 
 const route = useRoute();
 const toast = useToast();
@@ -228,6 +320,7 @@ const loading = ref(true);
 const errorLoad = ref('');
 const saving = ref(false);
 const kataKunci = ref('');
+const terpilihIds = ref([]);
 
 const daftarTampil = computed(() => {
   const q = kataKunci.value.trim().toLowerCase();
@@ -274,6 +367,48 @@ function setSemuaHadir() {
   for (const row of daftarKehadiran.value) {
     row.status = 'hadir';
   }
+}
+
+const isSemuaHadir = computed(() => {
+  if (daftarKehadiran.value.length === 0) return false;
+  return daftarKehadiran.value.every((r) => r.status === 'hadir');
+});
+
+function toggleSemuaHadir(e) {
+  const checked = e.target.checked;
+  if (checked) {
+    setSemuaHadir();
+    terpilihIds.value = daftarKehadiran.value.map((r) => r.mahasiswa_id);
+  } else {
+    terpilihIds.value = [];
+  }
+}
+
+const isSemuaDicentang = computed(() => {
+  if (daftarTampil.value.length === 0) return false;
+  return daftarTampil.value.every((r) => terpilihIds.value.includes(r.mahasiswa_id));
+});
+
+function toggleCentangSemua(e) {
+  if (e.target.checked) {
+    const ids = new Set(terpilihIds.value);
+    daftarTampil.value.forEach((r) => ids.add(r.mahasiswa_id));
+    terpilihIds.value = Array.from(ids);
+  } else {
+    const idsToRemove = new Set(daftarTampil.value.map((r) => r.mahasiswa_id));
+    terpilihIds.value = terpilihIds.value.filter((id) => !idsToRemove.has(id));
+  }
+}
+
+function setTerpilihStatus(newStatus) {
+  if (terpilihIds.value.length === 0) return;
+  const setIds = new Set(terpilihIds.value);
+  for (const row of daftarKehadiran.value) {
+    if (setIds.has(row.mahasiswa_id)) {
+      row.status = newStatus;
+    }
+  }
+  toast.success(`${terpilihIds.value.length} mahasiswa ditandai sebagai ${getStatus(newStatus).label}.`);
 }
 
 async function muatData() {
