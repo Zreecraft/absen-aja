@@ -1,37 +1,45 @@
 <template>
-  <header class="header">
-    <a href="/" class="header__nama-app">Absen Aja</a>
-    <nav class="header__nav">
-      <router-link to="/kelas" :class="{ aktif: $route.path.startsWith('/kelas') }">Kelas</router-link>
-      <router-link to="/mahasiswa" :class="{ aktif: $route.path.startsWith('/mahasiswa') }">Mahasiswa</router-link>
-    </nav>
-  </header>
+  <div class="min-h-screen bg-slate-50 flex flex-col text-slate-800">
+    <!-- Sidebar Desktop & Mobile Drawer -->
+    <AppSidebar :mobile-open="mobileNavOpen" @update:mobile-open="mobileNavOpen = $event" />
 
-  <!-- Pesan global sukses/gagal yang muncul sebentar -->
-  <div v-if="pesan.teks" class="pesan-global" :class="'pesan-global--' + pesan.tipe">
-    {{ pesan.teks }}
+    <!-- Topbar Mobile (layar < lg) -->
+    <header class="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="mobileNavOpen = true"
+          class="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          aria-label="Buka menu navigasi"
+        >
+          <Menu class="w-5 h-5" />
+        </button>
+        <router-link to="/kelas" class="flex items-center gap-2 font-bold text-slate-900 text-base">
+          <div class="w-7 h-7 rounded-md bg-brand-600 text-white flex items-center justify-center">
+            <ClipboardCheck class="w-4 h-4" />
+          </div>
+          <span>Absen Aja</span>
+        </router-link>
+      </div>
+    </header>
+
+    <!-- Area Konten Utama -->
+    <main class="lg:pl-64 flex-1 flex flex-col min-w-0">
+      <div class="max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex-1">
+        <router-view />
+      </div>
+    </main>
+
+    <!-- Host Notifikasi Toast Global -->
+    <ToastHost />
   </div>
-
-  <main class="konten">
-    <router-view :key="$route.fullPath" @pesan="tampilPesan" />
-  </main>
 </template>
 
 <script setup>
-import { reactive, provide } from 'vue';
+import { ref } from 'vue';
+import AppSidebar from './components/AppSidebar.vue';
+import ToastHost from './components/ToastHost.vue';
+import { Menu, ClipboardCheck } from 'lucide-vue-next';
 
-const pesan = reactive({ teks: '', tipe: '' });
-
-let timer = null;
-
-function tampilPesan({ teks, tipe = 'sukses' }) {
-  clearTimeout(timer);
-  pesan.teks = teks;
-  pesan.tipe = tipe;
-  // Pesan hilang otomatis setelah 4 detik
-  timer = setTimeout(() => { pesan.teks = ''; }, 4000);
-}
-
-// Expose ke child lewat provide supaya child bisa memanggil tanpa prop drilling
-provide('tampilPesan', tampilPesan);
+const mobileNavOpen = ref(false);
 </script>
